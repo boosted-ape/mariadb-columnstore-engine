@@ -96,7 +96,6 @@ const uint64_t SUB_BIT = 0x02;
 const uint64_t AF_BIT = 0x04;
 const uint64_t CORRELATED = 0x08;
 
-
 // In certain cases, gp_walk is called recursively. When done so,
 // we need to bookmark the rcWorkStack for those cases where a constant
 // expression such as 1=1 is used in an if statement or function call.
@@ -167,7 +166,7 @@ bool itemDisablesWrapping(Item* item, gp_walk_info& gwi);
 void pushReturnedCol(gp_walk_info& gwi, Item* from, SRCP rc)
 {
   uint32_t i;
-  for ( i = 0; i < gwi.processed.size(); i++)
+  for (i = 0; i < gwi.processed.size(); i++)
   {
     Item* ith = gwi.processed[i].first;
 
@@ -352,7 +351,8 @@ cal_impl_if::gp_walk_info::~gp_walk_info()
     delete ptWorkStack.top();
     ptWorkStack.pop();
   }
-  for (uint32_t i=0;i<viewList.size();i++) {
+  for (uint32_t i = 0; i < viewList.size(); i++)
+  {
     delete viewList[i];
   }
   viewList.clear();
@@ -395,7 +395,8 @@ void clearDeleteStacks(gp_walk_info& gwi)
     delete gwi.ptWorkStack.top();
     gwi.ptWorkStack.pop();
   }
-  for (uint32_t i=0;i<gwi.viewList.size();i++) {
+  for (uint32_t i = 0; i < gwi.viewList.size(); i++)
+  {
     delete gwi.viewList[i];
   }
   gwi.viewList.clear();
@@ -585,7 +586,8 @@ bool sortItemIsInGrouping(Item* sort_item, ORDER* groupcol)
       const Item_ref* ref_item = static_cast<const Item_ref*>(item);
       item = (Item*)*ref_item->ref;
     }
-    if (item->type() == Item::FIELD_ITEM || item->type() == Item::CONST_ITEM || item->type() == Item::NULL_ITEM)
+    if (item->type() == Item::FIELD_ITEM || item->type() == Item::CONST_ITEM ||
+        item->type() == Item::NULL_ITEM)
     {
       return true;
     }
@@ -1610,7 +1612,6 @@ uint32_t buildJoin(gp_walk_info& gwi, List<TABLE_LIST>& join_list,
           ParseTree* pt = new ParseTree(onFilter);
           outerJoinStack.push(pt);
         }
-
       }
       else  // inner join
       {
@@ -1706,7 +1707,7 @@ bool buildRowColumnFilter(gp_walk_info* gwip, RowColumn* rhs, RowColumn* lhs, It
     // two entries have been popped from the stack already: lhs and rhs
     stack<ReturnedColumn*> tmpStack;
     vector<RowColumn*> valVec;
-    vector<SRCP> heldOutVals; // these vals are not rhs/lhs and need to be freed
+    vector<SRCP> heldOutVals;  // these vals are not rhs/lhs and need to be freed
     tmpStack.push(rhs);
     tmpStack.push(lhs);
     assert(gwip->rcWorkStack.size() >= ifp->argument_count() - 2);
@@ -2116,7 +2117,7 @@ bool buildPredicateItem(Item_func* ifp, gp_walk_info* gwip)
     sop.reset(new PredicateOperator(eqop));
     SRCP scsp = gwip->scsp;
     idbassert(scsp.get() != nullptr);
-    //sop->setOpType(gwip->scsp->resultType(), rhs->resultType());
+    // sop->setOpType(gwip->scsp->resultType(), rhs->resultType());
     sop->setOpType(scsp->resultType(), rhs->resultType());
     ConstantFilter* cf = 0;
 
@@ -3425,8 +3426,9 @@ ReturnedColumn* wrapIntoAggregate(ReturnedColumn* rc, gp_walk_info& gwi, Item* b
   ac->charsetNumber(rc->charsetNumber());
   ac->orderPos(rc->orderPos());
   uint32_t i;
-  for(i=0; i < gwi.processed.size() && !gwi.processed[i].first->eq(baseItem, false);i++)
-  { }
+  for (i = 0; i < gwi.processed.size() && !gwi.processed[i].first->eq(baseItem, false); i++)
+  {
+  }
   if (i < gwi.processed.size())
   {
     ac->expressionId(gwi.processed[i].second);
@@ -3440,7 +3442,6 @@ ReturnedColumn* wrapIntoAggregate(ReturnedColumn* rc, gp_walk_info& gwi, Item* b
   ac->resultType(rc->resultType());
   return ac;
 }
-
 
 ReturnedColumn* buildReturnedColumnNull(gp_walk_info& gwi)
 {
@@ -3875,7 +3876,7 @@ ReturnedColumn* buildArithmeticColumnBody(Item_func* item, gp_walk_info& gwi, bo
         // Could have it set if there are aggregation funcs as this function arguments.
         gwi.fatalParseError = false;
 
-        //ReturnedColumn* rc = buildAggFrmTempField(sfitempp[0], gwi);
+        // ReturnedColumn* rc = buildAggFrmTempField(sfitempp[0], gwi);
         ReturnedColumn* rc = buildReturnedColumn(sfitempp[0], gwi, nonSupport);
         if (rc)
           lhs = new ParseTree(rc);
@@ -3895,7 +3896,7 @@ ReturnedColumn* buildArithmeticColumnBody(Item_func* item, gp_walk_info& gwi, bo
         // Could have it set if there are aggregation funcs as this function arguments.
         gwi.fatalParseError = false;
 
-        //ReturnedColumn* rc = buildAggFrmTempField(sfitempp[1], gwi);
+        // ReturnedColumn* rc = buildAggFrmTempField(sfitempp[1], gwi);
         ReturnedColumn* rc = buildReturnedColumn(sfitempp[1], gwi, nonSupport);
         if (rc)
           rhs = new ParseTree(rc);
@@ -4077,7 +4078,7 @@ ReturnedColumn* buildArithmeticColumnBody(Item_func* item, gp_walk_info& gwi, bo
           strcasecmp(ac->alias().c_str(), gwi.returnedCols[i]->alias().c_str()) == 0)
       {
         ac->expressionId(gwi.returnedCols[i]->expressionId());
-	isOnSelectList = true;
+        isOnSelectList = true;
         break;
       }
     }
@@ -4113,7 +4114,8 @@ ReturnedColumn* buildArithmeticColumn(Item_func* item, gp_walk_info& gwi, bool& 
   return rc;
 }
 
-ReturnedColumn* buildFunctionColumnBody(Item_func* ifp, gp_walk_info& gwi, bool& nonSupport, bool selectBetweenIn)
+ReturnedColumn* buildFunctionColumnBody(Item_func* ifp, gp_walk_info& gwi, bool& nonSupport,
+                                        bool selectBetweenIn)
 {
   if (get_fe_conn_info_ptr() == NULL)
   {
@@ -4124,7 +4126,7 @@ ReturnedColumn* buildFunctionColumnBody(Item_func* ifp, gp_walk_info& gwi, bool&
   cal_connection_info* ci = static_cast<cal_connection_info*>(get_fe_conn_info_ptr());
 
   string funcName = ifp->func_name();
-  if ( nullptr != dynamic_cast<Item_func_concat_operator_oracle*>(ifp))
+  if (nullptr != dynamic_cast<Item_func_concat_operator_oracle*>(ifp))
   {
     // the condition above is the only way to recognize this particular case.
     funcName = "concat_operator_oracle";
@@ -4355,9 +4357,9 @@ ReturnedColumn* buildFunctionColumnBody(Item_func* ifp, gp_walk_info& gwi, bool&
         if (mayHasBoolArg && isBoolType)
           rc = buildBooleanConstantColumn(ifp->arguments()[i], gwi, nonSupport);
         else
-	{
+        {
           rc = buildReturnedColumn(ifp->arguments()[i], gwi, nonSupport);
-	}
+        }
 
         // MCOL-1510 It must be a temp table field, so find the corresponding column.
         if (!rc && ifp->arguments()[i]->type() == Item::REF_ITEM)
@@ -4641,7 +4643,8 @@ ReturnedColumn* buildFunctionColumnBody(Item_func* ifp, gp_walk_info& gwi, bool&
 
     // A few functions use a different collation than that found in
     // the base ifp class
-    if (funcName == "locate" || funcName == "find_in_set" || funcName == "strcmp" || funcName == "regexp_instr")
+    if (funcName == "locate" || funcName == "find_in_set" || funcName == "strcmp" ||
+        funcName == "regexp_instr")
     {
       DTCollation dt;
       ifp->Type_std_attributes::agg_arg_charsets_for_comparison(dt, ifp->func_name_cstring(),
@@ -5174,7 +5177,7 @@ void analyzeForImplicitGroupBy(Item* item, gp_walk_info& gwi)
   if (item->type() == Item::FUNC_ITEM)
   {
     Item_func* ifp = static_cast<Item_func*>(item);
-    for(uint32_t i = 0;i<ifp->argument_count() && !gwi.implicitExplicitGroupBy;i++)
+    for (uint32_t i = 0; i < ifp->argument_count() && !gwi.implicitExplicitGroupBy; i++)
     {
       analyzeForImplicitGroupBy(ifp->arguments()[i], gwi);
     }
@@ -5481,21 +5484,23 @@ ReturnedColumn* buildAggregateColumnBody(Item* item, gp_walk_info& gwi)
                 {
                   //@bug5229. handle constant function on aggregate argument
                   ac->constCol(SRCP(rc));
-		  // XXX: this skips restoration of clauseType.
+                  // XXX: this skips restoration of clauseType.
                   break;
                 }
-		// the "rc" can be in gwi.no_parm_func_list. erase it from that list and
-		// then delete it.
-		// kludge, I know.
-		uint32_t i;
+                // the "rc" can be in gwi.no_parm_func_list. erase it from that list and
+                // then delete it.
+                // kludge, I know.
+                uint32_t i;
 
-		for (i = 0; gwi.no_parm_func_list[i] != rc && i < gwi.no_parm_func_list.size(); i++) { }
+                for (i = 0; gwi.no_parm_func_list[i] != rc && i < gwi.no_parm_func_list.size(); i++)
+                {
+                }
 
-		if (i < gwi.no_parm_func_list.size())
-		{
+                if (i < gwi.no_parm_func_list.size())
+                {
                   gwi.no_parm_func_list.erase(gwi.no_parm_func_list.begin() + i);
                   delete rc;
-		}
+                }
               }
             }
 
@@ -6002,7 +6007,7 @@ void gp_walk(const Item* item, void* arg)
 
       if (ifp)
       {
-	// XXX: this looks awfuly wrong.
+        // XXX: this looks awfuly wrong.
         SimpleColumn* scp = buildSimpleColumn(ifp, *gwip);
 
         if (!scp)
@@ -6011,7 +6016,7 @@ void gp_walk(const Item* item, void* arg)
         string aliasTableName(scp->tableAlias());
         scp->tableAlias(aliasTableName);
         gwip->rcWorkStack.push(scp->clone());
-	boost::shared_ptr<SimpleColumn> scsp(scp);
+        boost::shared_ptr<SimpleColumn> scsp(scp);
         gwip->scsp = scsp;
 
         gwip->funcName.clear();
@@ -6550,7 +6555,7 @@ void gp_walk(const Item* item, void* arg)
       }
       else if (col->type() == Item::FIELD_ITEM && gwip->clauseType == HAVING)
       {
-        //ReturnedColumn* rc = buildAggFrmTempField(const_cast<Item*>(item), *gwip);
+        // ReturnedColumn* rc = buildAggFrmTempField(const_cast<Item*>(item), *gwip);
         ReturnedColumn* rc = buildReturnedColumn(const_cast<Item*>(item), *gwip, gwip->fatalParseError);
         if (rc)
           gwip->rcWorkStack.push(rc);
@@ -6565,7 +6570,7 @@ void gp_walk(const Item* item, void* arg)
       SimpleColumn* thisSC = dynamic_cast<SimpleColumn*>(rc);
       if (thisSC)
       {
-	gwip->scsp.reset(thisSC->clone());
+        gwip->scsp.reset(thisSC->clone());
       }
       if (!rc && !cando)
       {
@@ -6784,14 +6789,14 @@ void parse_item(Item* item, vector<Item_field*>& field_vec, bool& hasNonSupportI
           // MCOL-1510. This could be a non-supported function
           // argument in form of a temp_table_field, so check
           // and set hasNonSupportItem if it is so.
-          //ReturnedColumn* rc = NULL;
-          //if (gwi)
+          // ReturnedColumn* rc = NULL;
+          // if (gwi)
           //  rc = buildAggFrmTempField(ref, *gwi);
 
-          //if (!rc)
+          // if (!rc)
           //{
-            Item_field* ifp = static_cast<Item_field*>(*(ref->ref));
-            field_vec.push_back(ifp);
+          Item_field* ifp = static_cast<Item_field*>(*(ref->ref));
+          field_vec.push_back(ifp);
           //}
           break;
         }
@@ -7036,22 +7041,115 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
     {
       // Until we handle recursive cte:
       // Checking here ensures we catch all with clauses in the query.
-      if (table_ptr->is_recursive_with_table())
-      {
-        gwi.fatalParseError = true;
-        gwi.parseErrorText = "Recursive CTE";
-        setError(gwi.thd, ER_CHECK_NOT_IMPLEMENTED, gwi.parseErrorText, gwi);
-        return ER_CHECK_NOT_IMPLEMENTED;
-      }
+      /*
 
+      refer to sql_union.cc, exec_recursive for a sample implementation
+
+      might just work by setting isUnion to true, then calling get select again.
+      need to set relevant meta data.
+
+      needs to write all to the first table, probably can be achieved
+      */
       string viewName = getViewName(table_ptr);
       if (lower_case_table_names)
       {
         boost::algorithm::to_lower(viewName);
       }
+      if (table_ptr->is_recursive_with_table())
+      {
+        With_element* with_element = table_ptr->derived->with_element;
+        SELECT_LEX* start = table_ptr->derived->first_select();
+        // SELECT_LEX* end = NULL;
+
+        // CalpontSelectExecutionPlan::SelectList unionVec;
+        // bool unionSel = true;
+        // uint8_t distUnionNum = 0;
+        SCSEP anchor_plan = NULL;
+
+        if (with_element->level == 0)
+        {
+          FromSubQuery* fromSub = new FromSubQuery(gwi, start);
+          string alias(table_ptr->alias.str);
+          if (lower_case_table_names)
+          {
+            boost::algorithm::to_lower(alias);
+          }
+          fromSub->alias(alias);
+
+          CalpontSystemCatalog::TableAliasName tn = make_aliasview("", "", alias, viewName);
+          // @bug 3852. check return execplan
+          anchor_plan = fromSub->transform();
+
+          if (!anchor_plan)
+          {
+            setError(gwi.thd, ER_INTERNAL_ERROR, fromSub->gwip().parseErrorText, gwi);
+            CalpontSystemCatalog::removeCalpontSystemCatalog(gwi.sessionid);
+            return ER_INTERNAL_ERROR;
+          }
+
+          gwi.derivedTbList.push_back(anchor_plan);
+          gwi.tbList.push_back(tn);
+          CalpontSystemCatalog::TableAliasName tan = make_aliastable("", alias, alias);
+          gwi.tableMap[tan] = make_pair(0, table_ptr);
+          // MCOL-2178 isUnion member only assigned, never used
+          // MIGR::infinidb_vtable.isUnion = true; //by-pass the 2nd pass of rnd_init
+          start = table_ptr->derived->first_select();
+          // if (with_element->with_anchor)
+          //   end = with_element->first_recursive;
+          with_element->level++;
+        }
+
+        if (!anchor_plan)
+        {
+          setError(gwi.thd, ER_INTERNAL_ERROR, "No Anchor Query", gwi);
+          CalpontSystemCatalog::removeCalpontSystemCatalog(gwi.sessionid);
+          return ER_INTERNAL_ERROR;
+        }
+
+
+
+        // for (SELECT_LEX* sl = start; sl != end; sl = sl->next_select())
+        // {
+        //   SCSEP plan(new CalpontSelectExecutionPlan());
+        //   plan->txnID(anchor_plan->txnID());
+        //   plan->verID(anchor_plan->verID());
+        //   plan->sessionID(anchor_plan->sessionID());
+        //   plan->traceFlags(anchor_plan->traceFlags());
+        //   plan->data(anchor_plan->data());
+
+        //   // gwi for the union unit
+        //   gp_walk_info union_gwi(gwi.timeZone, gwi.subQueriesChain);
+        //   union_gwi.thd = gwi.thd;
+        //   uint32_t err = 0;
+
+        //   if ((err = getSelectPlan(union_gwi, *sl, plan, unionSel)) != 0)
+        //     return err;
+
+        //   unionVec.push_back(SCEP(plan));
+
+        //   // distinct union num
+        //   if (sl == select_lex.master_unit()->union_distinct)
+        //     distUnionNum = unionVec.size();
+        // }
+
+        // anchor_plan->unionVec(unionVec);
+        // anchor_plan->distinctUnionNum(distUnionNum);
+
+        // if (table_ptr->view)
+        // {
+        //   gwi.parseErrorText = "Recursive CTE view";
+        // }
+        // else
+        // {
+        //   gwi.parseErrorText = "Recursive CTE";
+        // }
+
+        // setError(gwi.thd, ER_CHECK_NOT_IMPLEMENTED, gwi.parseErrorText, gwi);
+        // return ER_CHECK_NOT_IMPLEMENTED;
+      }
 
       // @todo process from subquery
-      if (table_ptr->derived)
+      else if (table_ptr->derived)
       {
         SELECT_LEX* select_cursor = table_ptr->derived->first_select();
         FromSubQuery* fromSub = new FromSubQuery(gwi, select_cursor);
@@ -7173,7 +7271,7 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
     }
   }
 
-  if (!isUnion && (!isSelectHandlerTop || isSelectLexUnit) && select_lex.master_unit()->is_unit_op())
+  if (!isUnion && (!isSelectHandlerTop || isSelectLexUnit) && select_lex.master_unit()->is_unit_op() && false)
   {
     // MCOL-2178 isUnion member only assigned, never used
     // MIGR::infinidb_vtable.isUnion = true;
@@ -7204,6 +7302,8 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
       // distinct union num
       if (sl == select_lex.master_unit()->union_distinct)
         distUnionNum = unionVec.size();
+      if (sl->get_table_list()->is_recursive_with_table())
+        break;
     }
 
     csep->unionVec(unionVec);
@@ -7511,7 +7611,7 @@ int processWhere(SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP& csep, const s
 
   if (!gwi.rcWorkStack.empty())
   {
-    while(!gwi.rcWorkStack.empty())
+    while (!gwi.rcWorkStack.empty())
     {
       ReturnedColumn* t = gwi.rcWorkStack.top();
       delete t;
@@ -7520,14 +7620,13 @@ int processWhere(SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP& csep, const s
   }
   if (!gwi.ptWorkStack.empty())
   {
-    while(!gwi.ptWorkStack.empty())
+    while (!gwi.ptWorkStack.empty())
     {
       ParseTree* t = gwi.ptWorkStack.top();
       delete t;
       gwi.ptWorkStack.pop();
     }
   }
-
 
   return 0;
 }
@@ -7817,7 +7916,7 @@ int getSelectPlan(gp_walk_info& gwi, SELECT_LEX& select_lex, SCSEP& csep, bool i
   }
 
   gwi.clauseType = SELECT;
-  SELECT_LEX* oldSelectLex = gwi.select_lex; // XXX: SZ: should it be restored in case of error return?
+  SELECT_LEX* oldSelectLex = gwi.select_lex;  // XXX: SZ: should it be restored in case of error return?
   gwi.select_lex = &select_lex;
 #ifdef DEBUG_WALK_COND
   {
@@ -7930,7 +8029,7 @@ int getSelectPlan(gp_walk_info& gwi, SELECT_LEX& select_lex, SCSEP& csep, bool i
           ReturnedColumn* rc = wrapIntoAggregate(sc, gwi, baseItem);
 
           SRCP sprc(rc);
-	  pushReturnedCol(gwi, baseItem, sprc);
+          pushReturnedCol(gwi, baseItem, sprc);
 
           gwi.columnMap.insert(
               CalpontSelectExecutionPlan::ColumnMap::value_type(string(ifp->field_name.str), sprc));
@@ -7967,7 +8066,7 @@ int getSelectPlan(gp_walk_info& gwi, SELECT_LEX& select_lex, SCSEP& csep, bool i
 
         // add this agg col to returnedColumnList
         boost::shared_ptr<ReturnedColumn> spac(ac);
-	pushReturnedCol(gwi, item, spac);
+        pushReturnedCol(gwi, item, spac);
         break;
       }
 
@@ -8026,7 +8125,7 @@ int getSelectPlan(gp_walk_info& gwi, SELECT_LEX& select_lex, SCSEP& csep, bool i
           if (!hasNonSupportItem && ifp->const_item() && !(parseInfo & AF_BIT) && tmpVec.size() == 0)
           {
             srcp.reset(buildReturnedColumn(item, gwi, gwi.fatalParseError));
-	    pushReturnedCol(gwi, item, srcp);
+            pushReturnedCol(gwi, item, srcp);
 
             if (ifp->name.length)
               srcp->alias(ifp->name.str);
@@ -8034,7 +8133,7 @@ int getSelectPlan(gp_walk_info& gwi, SELECT_LEX& select_lex, SCSEP& csep, bool i
             continue;
           }
 
-	  pushReturnedCol(gwi, item, srcp);
+          pushReturnedCol(gwi, item, srcp);
         }
         else  // This was a vtable post-process block
         {
@@ -8056,7 +8155,7 @@ int getSelectPlan(gp_walk_info& gwi, SELECT_LEX& select_lex, SCSEP& csep, bool i
             if (ifp->name.length)
               cc->alias(ifp->name.str);
 
-	    pushReturnedCol(gwi, ifp, srcp);
+            pushReturnedCol(gwi, ifp, srcp);
 
             // clear the error set by buildFunctionColumn
             gwi.fatalParseError = false;
@@ -8134,7 +8233,7 @@ int getSelectPlan(gp_walk_info& gwi, SELECT_LEX& select_lex, SCSEP& csep, bool i
               if (item->name.length)
                 srcp->alias(item->name.str);
 
-	      pushReturnedCol(gwi, item, srcp);
+              pushReturnedCol(gwi, item, srcp);
             }
 
             break;
@@ -8158,7 +8257,7 @@ int getSelectPlan(gp_walk_info& gwi, SELECT_LEX& select_lex, SCSEP& csep, bool i
         else
         {
           SRCP srcp(buildReturnedColumn(item, gwi, gwi.fatalParseError));
-	  pushReturnedCol(gwi, item, srcp);
+          pushReturnedCol(gwi, item, srcp);
 
           if (item->name.length)
             srcp->alias(item->name.str);
@@ -8254,7 +8353,7 @@ int getSelectPlan(gp_walk_info& gwi, SELECT_LEX& select_lex, SCSEP& csep, bool i
           return ER_CHECK_NOT_IMPLEMENTED;
         }
 
-	pushReturnedCol(gwi, item, srcp);
+        pushReturnedCol(gwi, item, srcp);
         break;
       }
       case Item::TYPE_HOLDER:
@@ -9104,7 +9203,6 @@ int getSelectPlan(gp_walk_info& gwi, SELECT_LEX& select_lex, SCSEP& csep, bool i
 
 int cp_get_table_plan(THD* thd, SCSEP& csep, cal_table_info& ti, long timeZone)
 {
-
   SubQueryChainHolder chainHolder;
   bool allocated = false;
   gp_walk_info* gwi;
@@ -9448,7 +9546,7 @@ int getGroupPlan(gp_walk_info& gwi, SELECT_LEX& select_lex, SCSEP& csep, cal_gro
       if (table_ptr->is_recursive_with_table())
       {
         gwi.fatalParseError = true;
-        gwi.parseErrorText = "Recursive CTE";
+        gwi.parseErrorText = "Recursive CTE hehe";
         setError(gwi.thd, ER_CHECK_NOT_IMPLEMENTED, gwi.parseErrorText, gwi);
         return ER_CHECK_NOT_IMPLEMENTED;
       }

@@ -229,6 +229,7 @@ class FromSubQuery : public SubQuery
     fAlias = alias;
   }
   execplan::SCSEP transform();
+  execplan::SCSEP transform(bool isUnion);
 
  private:
   SELECT_LEX* fFromSub;

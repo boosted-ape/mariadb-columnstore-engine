@@ -7078,7 +7078,7 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
 
           CalpontSystemCatalog::TableAliasName tn = make_aliasview("", "", alias, viewName);
           // @bug 3852. check return execplan
-          anchor_plan = fromSub->transform();
+          anchor_plan = fromSub->transform(isUnion);
 
           if (!anchor_plan)
           {
@@ -7106,34 +7106,6 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
           return ER_INTERNAL_ERROR;
         }
 
-
-
-        // for (SELECT_LEX* sl = start; sl != end; sl = sl->next_select())
-        // {
-        //   SCSEP plan(new CalpontSelectExecutionPlan());
-        //   plan->txnID(anchor_plan->txnID());
-        //   plan->verID(anchor_plan->verID());
-        //   plan->sessionID(anchor_plan->sessionID());
-        //   plan->traceFlags(anchor_plan->traceFlags());
-        //   plan->data(anchor_plan->data());
-
-        //   // gwi for the union unit
-        //   gp_walk_info union_gwi(gwi.timeZone, gwi.subQueriesChain);
-        //   union_gwi.thd = gwi.thd;
-        //   uint32_t err = 0;
-
-        //   if ((err = getSelectPlan(union_gwi, *sl, plan, unionSel)) != 0)
-        //     return err;
-
-        //   unionVec.push_back(SCEP(plan));
-
-        //   // distinct union num
-        //   if (sl == select_lex.master_unit()->union_distinct)
-        //     distUnionNum = unionVec.size();
-        // }
-
-        // anchor_plan->unionVec(unionVec);
-        // anchor_plan->distinctUnionNum(distUnionNum);
 
         // if (table_ptr->view)
         // {
@@ -7271,7 +7243,7 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
     }
   }
 
-  if (!isUnion && (!isSelectHandlerTop || isSelectLexUnit) && select_lex.master_unit()->is_unit_op() && false)
+  if (!isUnion && (!isSelectHandlerTop || isSelectLexUnit) && select_lex.master_unit()->is_unit_op())
   {
     // MCOL-2178 isUnion member only assigned, never used
     // MIGR::infinidb_vtable.isUnion = true;
@@ -7282,6 +7254,7 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
 
     for (SELECT_LEX* sl = select_cursor; sl; sl = sl->next_select())
     {
+
       SCSEP plan(new CalpontSelectExecutionPlan());
       plan->txnID(csep->txnID());
       plan->verID(csep->verID());

@@ -22,7 +22,7 @@
 #include <stack>
 #include <iterator>
 #include <algorithm>
-//#define NDEBUG
+// #define NDEBUG
 #include <cassert>
 #include <vector>
 #include <set>
@@ -78,6 +78,8 @@ using namespace logging;
 #include "tupleunion.h"
 #include "expressionstep.h"
 #include "tupleconstantstep.h"
+#include "subquerystep.h"
+#include "subquerytransformer.h"
 #include "tuplehavingstep.h"
 #include "windowfunctionstep.h"
 #include "tupleannexstep.h"
@@ -384,7 +386,6 @@ void checkHavingClause(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo)
       }
     }
   }
-
 }
 
 void preProcessFunctionOnAggregation(const vector<SimpleColumn*>& scs, const vector<AggregateColumn*>& aggs,
@@ -519,9 +520,9 @@ void checkGroupByCols(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo)
         // Not an aggregate column and not an expression of aggregation.
         if (dynamic_cast<AggregateColumn*>(orderByCols[i].get()) == NULL &&
             orderByCols[i]->aggColumnList().empty())
-	{
+        {
           csep->groupByCols().push_back(orderByCols[i]);
-	}
+        }
       }
     }
   }
@@ -1981,26 +1982,73 @@ void makeJobSteps(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo, JobStepVec
 void makeUnionJobSteps(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo, JobStepVector& querySteps,
                        JobStepVector&, DeliveredTableMap& deliverySteps)
 {
+  // CalpontSelectExecutionPlan::SelectList& selectVec = csep->unionVec();
+  // uint8_t distinctUnionNum = csep->distinctUnionNum();
+  // RetColsVector unionRetCols = csep->returnedCols();
+  // JobStepVector unionFeeders;
+
+  // temp, testing job steps functions
+
+  // for (CalpontSelectExecutionPlan::SelectList::iterator cit = selectVec.begin(); cit != selectVec.end();
+  //      cit++)
+  // {
+  //   // @bug4848, enhance and unify limit handling.
+  //   SJSTEP sub = doUnionSub(cit->get(), jobInfo);
+  //   querySteps.push_back(sub);
+  //   unionFeeders.push_back(sub);
+  // }
+
+  // jobInfo.deliveredCols = unionRetCols;
+
+  // SJSTEP unionStep(unionQueries(unionFeeders, distinctUnionNum, jobInfo));
+  // querySteps.push_back(unionStep);
+  // uint16_t stepNo = jobInfo.subId * 10000;
+  // numberSteps(querySteps, stepNo, jobInfo.traceFlags);
+  // deliverySteps[execplan::CNX_VTABLE_ID] = unionStep;
+
   CalpontSelectExecutionPlan::SelectList& selectVec = csep->unionVec();
   uint8_t distinctUnionNum = csep->distinctUnionNum();
   RetColsVector unionRetCols = csep->returnedCols();
   JobStepVector unionFeeders;
 
+  CalpontSelectExecutionPlan* prevRecur;
+  CalpontSelectExecutionPlan* currentRecur;
+
   for (CalpontSelectExecutionPlan::SelectList::iterator cit = selectVec.begin(); cit != selectVec.end();
-       cit++)
+       ++cit)
   {
     // @bug4848, enhance and unify limit handling.
+    prevRecur = dynamic_cast<CalpontSelectExecutionPlan*>(cit->get());
     SJSTEP sub = doUnionSub(cit->get(), jobInfo);
     querySteps.push_back(sub);
     unionFeeders.push_back(sub);
   }
 
+  currentRecur = new CalpontSelectExecutionPlan(*prevRecur);
+
+  CalpontSelectExecutionPlan::SelectList currentDerived;
+
+  
+  currentDerived.push_back(SCEP(prevRecur));
+  currentRecur->derivedTableList(currentDerived);
+
+  SJSTEP sub = doUnionSub(currentRecur, jobInfo);
+  querySteps.push_back(sub);
+  unionFeeders.push_back(sub);
+
   jobInfo.deliveredCols = unionRetCols;
-  SJSTEP unionStep(unionQueries(unionFeeders, distinctUnionNum, jobInfo));
-  querySteps.push_back(unionStep);
+
+  // Create the initial union step from the original feeders.
+  SJSTEP initialUnionStep(unionQueries(unionFeeders, distinctUnionNum, jobInfo));
+  querySteps.push_back(initialUnionStep);
+
+
+
   uint16_t stepNo = jobInfo.subId * 10000;
   numberSteps(querySteps, stepNo, jobInfo.traceFlags);
-  deliverySteps[execplan::CNX_VTABLE_ID] = unionStep;
+
+  // The final result delivered to the connection is from the wrapper step.
+  deliverySteps[execplan::CNX_VTABLE_ID] = initialUnionStep;
 }
 }  // namespace joblist
 

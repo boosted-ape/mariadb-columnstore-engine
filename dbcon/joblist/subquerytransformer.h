@@ -73,6 +73,10 @@ class SubQueryTransformer
    */
   virtual SJSTEP& makeSubQueryStep(execplan::CalpontSelectExecutionPlan*, bool b = false);
 
+  virtual SJSTEP& makeSubQueryStep(JobStepVector& initialQuerySteps,
+                                               DeliveredTableMap& initialDeliverySteps,
+                                               bool b = false);
+
   /** @brief virtual make a virtual table
    *  @param csep the execution plan
    *  @returns const VirtualTable&

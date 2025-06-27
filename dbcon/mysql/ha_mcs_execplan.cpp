@@ -7094,9 +7094,10 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
           // MCOL-2178 isUnion member only assigned, never used
           // MIGR::infinidb_vtable.isUnion = true; //by-pass the 2nd pass of rnd_init
           start = table_ptr->derived->first_select();
+          with_element->level++;
+
           // if (with_element->with_anchor)
           //   end = with_element->first_recursive;
-          with_element->level++;
         }
 
         if (!anchor_plan)
@@ -7105,7 +7106,6 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
           CalpontSystemCatalog::removeCalpontSystemCatalog(gwi.sessionid);
           return ER_INTERNAL_ERROR;
         }
-
 
         // if (table_ptr->view)
         // {
@@ -7254,7 +7254,6 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
 
     for (SELECT_LEX* sl = select_cursor; sl; sl = sl->next_select())
     {
-
       SCSEP plan(new CalpontSelectExecutionPlan());
       plan->txnID(csep->txnID());
       plan->verID(csep->verID());

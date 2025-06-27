@@ -19,7 +19,7 @@
 //  $Id: subquerytransformer.cpp 6406 2010-03-26 19:18:37Z xlou $
 
 #include <iostream>
-//#define NDEBUG
+// #define NDEBUG
 #include <cassert>
 using namespace std;
 
@@ -267,6 +267,196 @@ SJSTEP& SubQueryTransformer::makeSubQueryStep(execplan::CalpontSelectExecutionPl
   }
 
   RowGroup rg1(oids.size(), pos, oids, keys, types, csNums, scale, precision, csep->stringTableThreshold());
+  rg1.setUseStringTable(rg.usesStringTable());
+
+  dynamic_cast<SubQueryStep*>(fSubQueryStep.get())->setOutputRowGroup(rg1);
+
+  return fSubQueryStep;
+}
+
+// Overloaded makeSubQueryStep that takes existing querySteps and deliverySteps
+SJSTEP& SubQueryTransformer::makeSubQueryStep(
+    JobStepVector& querySteps, DeliveredTableMap& deliverySteps,
+    bool subInFromClause)  // subInFromClause might still be relevant
+{
+  // === Setup JobInfo and JobList (largely copied from original) ===
+  fSubJobInfo = new JobInfo(fOutJobInfo->rm);
+  fSubJobInfo->sessionId = fOutJobInfo->sessionId;
+  fSubJobInfo->txnId = fOutJobInfo->txnId;
+  fSubJobInfo->verId = fOutJobInfo->verId;
+  fSubJobInfo->statementId = fOutJobInfo->statementId;
+  fSubJobInfo->queryType = fOutJobInfo->queryType;
+  fSubJobInfo->csc = fOutJobInfo->csc;
+  fSubJobInfo->trace = fOutJobInfo->trace;
+  fSubJobInfo->traceFlags = fOutJobInfo->traceFlags;
+  fSubJobInfo->isExeMgr = fOutJobInfo->isExeMgr;
+  fSubJobInfo->subLevel = fOutJobInfo->subLevel + 1;
+  fSubJobInfo->keyInfo = fOutJobInfo->keyInfo;
+  fSubJobInfo->stringScanThreshold = fOutJobInfo->stringScanThreshold;
+  fSubJobInfo->tryTuples = true;
+  fSubJobInfo->errorInfo = fErrorInfo;
+  fOutJobInfo->subNum++;
+  fSubJobInfo->subCount = fOutJobInfo->subCount;
+  fSubJobInfo->subId = ++(*(fSubJobInfo->subCount));
+  fSubJobInfo->pJobInfo = fOutJobInfo;
+  fSubJobList.reset(new TupleJobList(true));
+  // The original uses csep->priority(). You'll need to decide on a priority here.
+  // For now, let's assume a default or pass it as a parameter if dynamic.
+  // fSubJobList->priority(csep->priority()); // Removed, as csep is not available
+  fSubJobInfo->projectingTableOID = fSubJobList->projectingTableOIDPtr();
+  fSubJobInfo->jobListPtr = fSubJobList.get();
+  fSubJobInfo->stringTableThreshold = fOutJobInfo->stringTableThreshold;
+  fSubJobInfo->localQuery = fOutJobInfo->localQuery;
+  fSubJobInfo->uuid = fOutJobInfo->uuid;
+  fSubJobInfo->timeZone = fOutJobInfo->timeZone;
+
+  fOutJobInfo->jobListPtr->addSubqueryJobList(fSubJobList);
+
+  fSubJobInfo->smallSideLimit = fOutJobInfo->smallSideLimit;
+  fSubJobInfo->largeSideLimit = fOutJobInfo->largeSideLimit;
+  fSubJobInfo->smallSideUsage = fOutJobInfo->smallSideUsage;
+  fSubJobInfo->partitionSize = fOutJobInfo->partitionSize;
+  fSubJobInfo->umMemLimit = fOutJobInfo->umMemLimit;
+  fSubJobInfo->isDML = fOutJobInfo->isDML;
+
+  // === Update v-table's alias (copied from original) ===
+  fVtable.name("$sub");
+
+  if (fVtable.alias().empty())
+  {
+    ostringstream oss;
+    oss << "$sub_" << fSubJobInfo->subId << "_" << fSubJobInfo->subLevel << "_" << fOutJobInfo->subNum;
+    fVtable.alias(oss.str());
+  }
+  fSubJobInfo->subAlias = fVtable.alias();  //@bug5844, unique alias for sub
+
+  // === Directly use provided steps (key change here) ===
+  // No need to call makeJobSteps or makeUnionJobSteps
+
+  if (fSubJobInfo->trace)
+  {
+    ostringstream oss;
+    oss << boldStart << "\nsubquery " << fSubJobInfo->subLevel << "." << fOutJobInfo->subNum
+        << " steps (from input):" << boldStop << endl;
+    ostream_iterator<JobStepVector::value_type> oIter(oss, "\n");
+    copy(querySteps.begin(), querySteps.end(), oIter);
+    cout << oss.str();
+  }
+
+  // Add steps to the joblist. (copied from original, using input vectors)
+  fSubJobList->addQuery(querySteps);
+  fSubJobList->addDelivery(deliverySteps);
+  fSubJobList->putEngineComm(DistributedEngineComm::instance(fOutJobInfo->rm));
+  // csep->setDynamicParseTreeVec(fSubJobInfo->dynamicParseTreeVec); // Removed, as csep is not available
+  // You might need to set dynamicParseTreeVec from another source if needed.
+
+  // Get the correlated steps
+  fCorrelatedSteps = fSubJobInfo->correlateSteps;
+  fSubReturnedCols = fSubJobInfo->deliveredCols;
+
+  // Convert subquery to step.
+  SubQueryStep* sqs = new SubQueryStep(*fSubJobInfo);
+  sqs->tableOid(fVtable.tableOid());
+  sqs->alias(fVtable.alias());
+  sqs->subJoblist(fSubJobList);
+  sqs->setOutputRowGroup(fSubJobList->getOutputRowGroup());
+  AnyDataListSPtr spdl(new AnyDataList());
+  RowGroupDL* dl = new RowGroupDL(1, fSubJobInfo->fifoSize);
+  spdl->rowGroupDL(dl);
+  dl->OID(fVtable.tableOid());
+  JobStepAssociation jsa;
+  jsa.outAdd(spdl);
+  (querySteps.back())->outputAssociation(jsa);
+  sqs->outputAssociation(jsa);
+  fSubQueryStep.reset(sqs);
+
+  // Update the v-table columns and rowgroup
+  vector<uint32_t> pos;
+  vector<uint32_t> oids;
+  vector<uint32_t> keys;
+  vector<uint32_t> scale;
+  vector<uint32_t> precision;
+  vector<CalpontSystemCatalog::ColDataType> types;
+  vector<uint32_t> csNums;
+  pos.push_back(2);
+
+  CalpontSystemCatalog::OID tblOid = fVtable.tableOid();
+  string tableName = fVtable.name();
+  string alias = fVtable.alias();
+  const RowGroup& rg = fSubJobList->getOutputRowGroup();
+  Row row;
+  rg.initRow(&row);
+  uint64_t outputCols =
+      rg.getColumnCount() < fSubReturnedCols.size() ? rg.getColumnCount() : fSubReturnedCols.size();
+
+  for (uint64_t i = 0; i < outputCols; i++)
+  {
+    fVtable.addColumn(fSubReturnedCols[i]);
+
+    // make sure the column type is the same as rowgroup
+    CalpontSystemCatalog::ColType ct = fVtable.columnType(i);
+    CalpontSystemCatalog::ColDataType colDataTypeInRg = row.getColTypes()[i];
+
+    if (dynamic_cast<AggregateColumn*>(fSubReturnedCols[i].get()) != NULL ||
+        dynamic_cast<WindowFunctionColumn*>(fSubReturnedCols[i].get()) != NULL)
+    {
+      // skip char/varchar/varbinary column because the colWidth in row is fudged.
+      if (colDataTypeInRg != CalpontSystemCatalog::VARCHAR && colDataTypeInRg != CalpontSystemCatalog::CHAR &&
+          colDataTypeInRg != CalpontSystemCatalog::VARBINARY &&
+          colDataTypeInRg != CalpontSystemCatalog::TEXT && colDataTypeInRg != CalpontSystemCatalog::BLOB)
+      {
+        ct.colWidth = row.getColumnWidth(i);
+        ct.colDataType = row.getColTypes()[i];
+        ct.charsetNumber = row.getCharsetNumber(i);
+        ct.scale = row.getScale(i);
+
+        if (colDataTypeInRg != CalpontSystemCatalog::FLOAT &&
+            colDataTypeInRg != CalpontSystemCatalog::UFLOAT &&
+            colDataTypeInRg != CalpontSystemCatalog::DOUBLE &&
+            colDataTypeInRg != CalpontSystemCatalog::UDOUBLE &&
+            colDataTypeInRg != CalpontSystemCatalog::LONGDOUBLE)
+        {
+          if (ct.scale != 0 && ct.precision != -1)
+            ct.colDataType = CalpontSystemCatalog::DECIMAL;
+        }
+
+        ct.precision = row.getPrecision(i);
+        fVtable.columnType(ct, i);
+      }
+    }
+    // MySQL timestamp/time/date/datetime type is different from IDB type
+    else if (colDataTypeInRg == CalpontSystemCatalog::DATE ||
+             colDataTypeInRg == CalpontSystemCatalog::DATETIME ||
+             colDataTypeInRg == CalpontSystemCatalog::TIMESTAMP ||
+             colDataTypeInRg == CalpontSystemCatalog::TIME)
+    {
+      ct.colWidth = row.getColumnWidth(i);
+      ct.colDataType = row.getColTypes()[i];
+      ct.scale = row.getScale(i);
+      ct.precision = row.getPrecision(i);
+      fVtable.columnType(ct, i);
+    }
+
+    // build tuple info to export to outer query
+    TupleInfo ti(setTupleInfo(fVtable.columnType(i), fVtable.columnOid(i), *fOutJobInfo, tblOid,
+                              fVtable.columns()[i].get(), alias));
+
+    if (i < rg.getColumnCount())
+    {
+      pos.push_back(pos.back() + ti.width);
+      oids.push_back(ti.oid);
+      keys.push_back(ti.key);
+      types.push_back(ti.dtype);
+      csNums.push_back(ti.csNum);
+      scale.push_back(ti.scale);
+      precision.push_back(ti.precision);
+    }
+
+    fOutJobInfo->vtableColTypes[UniqId(fVtable.columnOid(i), fVtable.alias(), "", "")] =
+        fVtable.columnType(i);
+  }
+
+  RowGroup rg1(oids.size(), pos, oids, keys, types, csNums, scale, precision, fOutJobInfo->stringScanThreshold);
   rg1.setUseStringTable(rg.usesStringTable());
 
   dynamic_cast<SubQueryStep*>(fSubQueryStep.get())->setOutputRowGroup(rg1);

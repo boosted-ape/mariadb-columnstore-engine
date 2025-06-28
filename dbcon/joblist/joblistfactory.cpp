@@ -2012,7 +2012,7 @@ void makeUnionJobSteps(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo, JobSt
   JobStepVector unionFeeders;
 
   CalpontSelectExecutionPlan* prevRecur;
-  CalpontSelectExecutionPlan* currentRecur;
+  CalpontSelectExecutionPlan* currRecur;
 
   for (CalpontSelectExecutionPlan::SelectList::iterator cit = selectVec.begin(); cit != selectVec.end();
        ++cit)
@@ -2024,25 +2024,38 @@ void makeUnionJobSteps(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo, JobSt
     unionFeeders.push_back(sub);
   }
 
-  currentRecur = new CalpontSelectExecutionPlan(*prevRecur);
+  currRecur = new CalpontSelectExecutionPlan(*prevRecur);
 
-  CalpontSelectExecutionPlan::SelectList currentDerived;
+  CalpontSelectExecutionPlan::SelectList currDerivedTbList;
 
-  
-  currentDerived.push_back(SCEP(prevRecur));
-  currentRecur->derivedTableList(currentDerived);
+  currDerivedTbList.push_back(SCEP(prevRecur));
+  currRecur->derivedTableList(currDerivedTbList);
 
-  SJSTEP sub = doUnionSub(currentRecur, jobInfo);
+  SJSTEP sub = doUnionSub(currRecur, jobInfo);
   querySteps.push_back(sub);
   unionFeeders.push_back(sub);
+
+  for (int i = 0; i < 5; ++i)
+  {
+    prevRecur = currRecur;
+
+    currRecur = new CalpontSelectExecutionPlan(*prevRecur);
+
+    CalpontSelectExecutionPlan::SelectList secDerivedTbList;
+
+    secDerivedTbList.push_back(SCEP(prevRecur));
+    currRecur->derivedTableList(secDerivedTbList);
+
+    sub = doUnionSub(currRecur, jobInfo);
+    querySteps.push_back(sub);
+    unionFeeders.push_back(sub);
+  }
 
   jobInfo.deliveredCols = unionRetCols;
 
   // Create the initial union step from the original feeders.
   SJSTEP initialUnionStep(unionQueries(unionFeeders, distinctUnionNum, jobInfo));
   querySteps.push_back(initialUnionStep);
-
-
 
   uint16_t stepNo = jobInfo.subId * 10000;
   numberSteps(querySteps, stepNo, jobInfo.traceFlags);

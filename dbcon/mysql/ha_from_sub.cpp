@@ -427,6 +427,7 @@ SCSEP FromSubQuery::transform(bool isUnion){
   gwi.thd = fGwip.thd;
   gwi.subQuery = this;
   gwi.viewName = fGwip.viewName;
+  gwi.recursiveWithTableName = fGwip.recursiveWithTableName;
   csep->derivedTbAlias(fAlias);  // always lower case
   csep->derivedTbView(fGwip.viewName.alias, lower_case_table_names);
 
@@ -460,6 +461,7 @@ SCSEP FromSubQuery::transform()
   gwi.thd = fGwip.thd;
   gwi.subQuery = this;
   gwi.viewName = fGwip.viewName;
+  gwi.recursiveWithTableName = fGwip.recursiveWithTableName;
   csep->derivedTbAlias(fAlias);  // always lower case
   csep->derivedTbView(fGwip.viewName.alias, lower_case_table_names);
 

@@ -26,7 +26,7 @@
 
 
 //#define INFINIDB_DEBUG
-//#define DEBUG_WALK_COND
+#define DEBUG_WALK_COND
 
 #define MYSQL_SERVER 1  // needed for definition of struct THD in mysql_priv.h
 #define USE_CALPONT_REGEX

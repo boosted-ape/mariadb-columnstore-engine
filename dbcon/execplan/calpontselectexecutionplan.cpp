@@ -25,13 +25,13 @@
 using namespace std;
 
 #include <boost/uuid/uuid_io.hpp>
+#include <utility>
 
 #include "bytestream.h"
 using namespace messageqcpp;
 
 #include "calpontselectexecutionplan.h"
 #include "objectreader.h"
-#include "filter.h"
 #include "returnedcolumn.h"
 #include "simplecolumn.h"
 #include "querystats.h"
@@ -63,10 +63,10 @@ CalpontSelectExecutionPlan::ColumnMap CalpontSelectExecutionPlan::fColMap;
 /**
  * Constructors/Destructors
  */
-CalpontSelectExecutionPlan::CalpontSelectExecutionPlan(const int location)
+CalpontSelectExecutionPlan::CalpontSelectExecutionPlan(int location)
  : fLocalQuery(GLOBAL_QUERY)
- , fFilters(0)
- , fHaving(0)
+ , fFilters(nullptr)
+ , fHaving(nullptr)
  , fLocation(location)
  , fDependent(false)
  , fTxnID(-1)
@@ -94,47 +94,45 @@ CalpontSelectExecutionPlan::CalpontSelectExecutionPlan(const int location)
  fUMMemLimit(numeric_limits<int64_t>::max())
  , fIsDML(false)
  , fWithRollup(false)
+ , fIsRecursiveWithTable(false)
 {
   fUuid = QueryTeleClient::genUUID();
 }
 
-CalpontSelectExecutionPlan::CalpontSelectExecutionPlan(
-    const ReturnedColumnList& returnedCols, ParseTree* filters, const SelectList& subSelects,
-    const GroupByColumnList& groupByCols, ParseTree* having, const OrderByColumnList& orderByCols,
-    const string alias, const int location, const bool dependent, const bool withRollup)
- : fReturnedCols(returnedCols)
+CalpontSelectExecutionPlan::CalpontSelectExecutionPlan(ReturnedColumnList returnedCols, ParseTree* filters,
+                                                       SelectList subSelects, GroupByColumnList groupByCols,
+                                                       ParseTree* having, OrderByColumnList orderByCols,
+                                                       string alias, int location, bool dependent,
+                                                       bool withRollup)
+ : fReturnedCols(std::move(returnedCols))
  , fFilters(filters)
- , fSubSelects(subSelects)
- , fGroupByCols(groupByCols)
+ , fSubSelects(std::move(subSelects))
+ , fGroupByCols(std::move(groupByCols))
  , fHaving(having)
- , fOrderByCols(orderByCols)
- , fTableAlias(alias)
+ , fOrderByCols(std::move(orderByCols))
+ , fTableAlias(std::move(alias))
  , fLocation(location)
  , fDependent(dependent)
  , fPriority(querystats::DEFAULT_USER_PRIORITY_LEVEL)
  , fWithRollup(withRollup)
+ , fIsRecursiveWithTable(false)
 {
   fUuid = QueryTeleClient::genUUID();
 }
 
 CalpontSelectExecutionPlan::CalpontSelectExecutionPlan(string data)
- : fData(data)
- , fPriority(querystats::DEFAULT_USER_PRIORITY_LEVEL)
- , fWithRollup(false)
+ : fData(std::move(data)), fPriority(querystats::DEFAULT_USER_PRIORITY_LEVEL), fWithRollup(false), fIsRecursiveWithTable(false)
 {
   fUuid = QueryTeleClient::genUUID();
 }
 
 CalpontSelectExecutionPlan::~CalpontSelectExecutionPlan()
 {
-  if (fFilters != NULL)
-    delete fFilters;
+  delete fFilters;
+  delete fHaving;
 
-  if (fHaving != NULL)
-    delete fHaving;
-
-  fFilters = NULL;
-  fHaving = NULL;
+  fFilters = nullptr;
+  fHaving = nullptr;
 
   if (!fDynamicParseTreeVec.empty())
   {
@@ -145,11 +143,11 @@ CalpontSelectExecutionPlan::~CalpontSelectExecutionPlan()
         // 'delete fFilters;' above has already deleted objects pointed
         // to by parseTree->left()/right()/data(), so we set the
         // pointers to NULL here before calling 'delete parseTree;'
-        parseTree->left((ParseTree*)(NULL));
-        parseTree->right((ParseTree*)(NULL));
-        parseTree->data((TreeNode*)(NULL));
+        parseTree->left((ParseTree*)(nullptr));
+        parseTree->right((ParseTree*)(nullptr));
+        parseTree->data((TreeNode*)(nullptr));
         delete parseTree;
-        parseTree = NULL;
+        parseTree = nullptr;
       }
     }
 
@@ -265,7 +263,7 @@ string CalpontSelectExecutionPlan::toString() const
   // Filters
   output << ">>Filters" << endl;
 
-  if (filters() != 0)
+  if (filters() != nullptr)
     filters()->walk(ParseTree::print, output);
   else
     output << "empty filter tree" << endl;
@@ -282,7 +280,7 @@ string CalpontSelectExecutionPlan::toString() const
   }
 
   // Having
-  if (having() != 0)
+  if (having() != nullptr)
   {
     output << ">>Having" << endl;
     having()->walk(ParseTree::print, output);
@@ -473,6 +471,7 @@ void CalpontSelectExecutionPlan::serialize(messageqcpp::ByteStream& b) const
   b << timeZone;
   b << fPron;
   b << (uint8_t)fWithRollup;
+  b << (uint8_t)fIsRecursiveWithTable;
 }
 
 void CalpontSelectExecutionPlan::unserialize(messageqcpp::ByteStream& b)
@@ -496,16 +495,16 @@ void CalpontSelectExecutionPlan::unserialize(messageqcpp::ByteStream& b)
   fDerivedTableList.clear();
   fSelectSubList.clear();
 
-  if (fFilters != 0)
+  if (fFilters != nullptr)
   {
     delete fFilters;
-    fFilters = 0;
+    fFilters = nullptr;
   }
 
-  if (fHaving != 0)
+  if (fHaving != nullptr)
   {
     delete fHaving;
-    fHaving = 0;
+    fHaving = nullptr;
   }
 
   if (!fDynamicParseTreeVec.empty())
@@ -517,11 +516,11 @@ void CalpontSelectExecutionPlan::unserialize(messageqcpp::ByteStream& b)
         // 'delete fFilters;' above has already deleted objects pointed
         // to by parseTree->left()/right()/data(), so we set the
         // pointers to NULL here before calling 'delete parseTree;'
-        parseTree->left((ParseTree*)(NULL));
-        parseTree->right((ParseTree*)(NULL));
-        parseTree->data((TreeNode*)(NULL));
+        parseTree->left((ParseTree*)(nullptr));
+        parseTree->right((ParseTree*)(nullptr));
+        parseTree->data((TreeNode*)(nullptr));
         delete parseTree;
-        parseTree = NULL;
+        parseTree = nullptr;
       }
     }
 
@@ -677,6 +676,8 @@ void CalpontSelectExecutionPlan::unserialize(messageqcpp::ByteStream& b)
   utils::Pron::instance().pron(fPron);
   b >> tmp8;
   fWithRollup = tmp8;
+  b >> tmp8;
+  fIsRecursiveWithTable = tmp8;
 }
 
 bool CalpontSelectExecutionPlan::operator==(const CalpontSelectExecutionPlan& t) const
@@ -699,12 +700,12 @@ bool CalpontSelectExecutionPlan::operator==(const CalpontSelectExecutionPlan& t)
       return false;
 
   // fFilters
-  if (fFilters != NULL && t.fFilters != NULL)
+  if (fFilters != nullptr && t.fFilters != nullptr)
   {
     if (*fFilters != *t.fFilters)
       return false;
   }
-  else if (fFilters != NULL || t.fFilters != NULL)
+  else if (fFilters != nullptr || t.fFilters != nullptr)
     return false;
 
   // fSubSelects
@@ -725,12 +726,12 @@ bool CalpontSelectExecutionPlan::operator==(const CalpontSelectExecutionPlan& t)
       return false;
 
   // fHaving
-  if (fHaving != NULL && t.fHaving != NULL)
+  if (fHaving != nullptr && t.fHaving != nullptr)
   {
     if (*fHaving != *t.fHaving)
       return false;
   }
-  else if (fHaving != NULL || t.fHaving != NULL)
+  else if (fHaving != nullptr || t.fHaving != nullptr)
     return false;
 
   // fOrderByCols
@@ -795,7 +796,7 @@ bool CalpontSelectExecutionPlan::operator==(const CalpontExecutionPlan* t) const
 
   ac = dynamic_cast<const CalpontSelectExecutionPlan*>(t);
 
-  if (ac == NULL)
+  if (ac == nullptr)
     return false;
 
   return *this == *ac;

@@ -2,6 +2,7 @@
    Copyright (C) 2019 MariaDB Corporation
 
    This program is free software; you can redistribute it and/or
+   This program is free software; you can redistribute it and/or
    modify it under the terms of the GNU General Public License
    as published by the Free Software Foundation; version 2 of
    the License.
@@ -1130,7 +1131,10 @@ const JobStepVector doAggProject(const CalpontSelectExecutionPlan* csep, JobInfo
             else
               it = pcv.insert(pcv.end(), srcp);
 
-            projectKeys.insert(projectKeys.begin() + std::distance(pcv.begin(), it), tupleKey);
+            auto placeToInsert = std::distance(pcv.begin(), it);
+            projectKeys.insert(
+                projectKeys.begin() + std::min(placeToInsert, projectKeys.end() - projectKeys.begin()),
+                tupleKey);
           }
           else if (doDistinct)  // @bug4250, move forward distinct column if necessary.
           {
@@ -1301,7 +1305,9 @@ const JobStepVector doAggProject(const CalpontSelectExecutionPlan* csep, JobInfo
         else
           it = pcv.insert(pcv.end(), srcp);
 
-        projectKeys.insert(projectKeys.begin() + std::distance(pcv.begin(), it), tupleKey);
+        auto placeToInsert = std::distance(pcv.begin(), it);
+        projectKeys.insert(
+            projectKeys.begin() + std::min(placeToInsert, projectKeys.end() - projectKeys.begin()), tupleKey);
       }
       else if (doDistinct)  // @bug4250, move forward distinct column if necessary.
       {
@@ -1982,86 +1988,110 @@ void makeJobSteps(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo, JobStepVec
 void makeUnionJobSteps(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo, JobStepVector& querySteps,
                        JobStepVector&, DeliveredTableMap& deliverySteps)
 {
-  // CalpontSelectExecutionPlan::SelectList& selectVec = csep->unionVec();
-  // uint8_t distinctUnionNum = csep->distinctUnionNum();
-  // RetColsVector unionRetCols = csep->returnedCols();
-  // JobStepVector unionFeeders;
-
-  // temp, testing job steps functions
-
-  // for (CalpontSelectExecutionPlan::SelectList::iterator cit = selectVec.begin(); cit != selectVec.end();
-  //      cit++)
-  // {
-  //   // @bug4848, enhance and unify limit handling.
-  //   SJSTEP sub = doUnionSub(cit->get(), jobInfo);
-  //   querySteps.push_back(sub);
-  //   unionFeeders.push_back(sub);
-  // }
-
-  // jobInfo.deliveredCols = unionRetCols;
-
-  // SJSTEP unionStep(unionQueries(unionFeeders, distinctUnionNum, jobInfo));
-  // querySteps.push_back(unionStep);
-  // uint16_t stepNo = jobInfo.subId * 10000;
-  // numberSteps(querySteps, stepNo, jobInfo.traceFlags);
-  // deliverySteps[execplan::CNX_VTABLE_ID] = unionStep;
-
-  CalpontSelectExecutionPlan::SelectList& selectVec = csep->unionVec();
-  uint8_t distinctUnionNum = csep->distinctUnionNum();
-  RetColsVector unionRetCols = csep->returnedCols();
-  JobStepVector unionFeeders;
-
-  CalpontSelectExecutionPlan* prevRecur;
-  CalpontSelectExecutionPlan* currRecur;
-
-  for (CalpontSelectExecutionPlan::SelectList::iterator cit = selectVec.begin(); cit != selectVec.end();
-       ++cit)
+  if (csep->isRecursiveWithTable())
   {
-    // @bug4848, enhance and unify limit handling.
-    prevRecur = dynamic_cast<CalpontSelectExecutionPlan*>(cit->get());
-    SJSTEP sub = doUnionSub(cit->get(), jobInfo);
-    querySteps.push_back(sub);
-    unionFeeders.push_back(sub);
+    CalpontSelectExecutionPlan::SelectList& selectVec = csep->unionVec();
+    uint8_t distinctUnionNum = csep->distinctUnionNum();
+    RetColsVector unionRetCols = csep->returnedCols();
+    JobStepVector unionFeeders;
+
+    // CalpontSelectExecutionPlan* prevRecur;
+    // CalpontSelectExecutionPlan* currRecur;
+
+    SJSTEP sub;
+
+    for (CalpontSelectExecutionPlan::SelectList::iterator cit = selectVec.begin(); cit != selectVec.end();
+         ++cit)
+    {
+      // @bug4848, enhance and unify limit handling.
+      // prevRecur = dynamic_cast<CalpontSelectExecutionPlan*>(cit->get());
+
+      sub = doUnionSub(cit->get(), jobInfo);
+      querySteps.push_back(sub);
+      unionFeeders.push_back(sub);
+
+      //*(((((SubQueryStep*)(((SubAdapterStep*)sub.get())->subStep().get()))->subJoblist()).get())->fQuery[0].get())
+      // test
+      if (cit != selectVec.begin())
+      {
+        bool test = *(((CalpontSelectExecutionPlan*)(selectVec.begin()->get()))) ==
+                    *((CalpontSelectExecutionPlan*)(((CalpontSelectExecutionPlan*)(cit->get()))
+                                                        ->derivedTableList()
+                                                        .begin()
+                                                        ->get()));
+        (void)test;
+      }
+    }
+
+    // tbps->setOutputRowGroup(rg);
+    // tbps->outputAssociation(jsaIn);
+    // annexStep->inputAssociation(jsaIn);
+    // annexStep->outputAssociation(jsaOut);
+
+    // currRecur = new CalpontSelectExecutionPlan(*prevRecur);
+
+    // CalpontSelectExecutionPlan::SelectList currDerivedTbList;
+
+    // currDerivedTbList.push_back(SCEP(prevRecur));
+    // currRecur->derivedTableList(currDerivedTbList);
+
+    // SJSTEP sub = doUnionSub(currRecur, jobInfo);
+    // querySteps.push_back(sub);
+    // unionFeeders.push_back(sub);
+
+    // // set to max recursion depth
+    // for (int i = 0; i < 10; ++i)
+    // {
+    //   prevRecur = currRecur;
+
+    //   currRecur = new CalpontSelectExecutionPlan(*prevRecur);
+
+    //   CalpontSelectExecutionPlan::SelectList secDerivedTbList;
+
+    //   secDerivedTbList.push_back(SCEP(prevRecur));
+    //   currRecur->derivedTableList(secDerivedTbList);
+
+    //   sub = doUnionSub(currRecur, jobInfo);
+    //   querySteps.push_back(sub);
+    //   unionFeeders.push_back(sub);
+    // }
+
+    jobInfo.deliveredCols = unionRetCols;
+
+    // Create the initial union step from the original feeders.
+    SJSTEP initialUnionStep(unionQueries(unionFeeders, distinctUnionNum, jobInfo));
+    querySteps.push_back(initialUnionStep);
+
+    uint16_t stepNo = jobInfo.subId * 10000;
+    numberSteps(querySteps, stepNo, jobInfo.traceFlags);
+
+    // The final result delivered to the connection is from the wrapper step.
+    deliverySteps[execplan::CNX_VTABLE_ID] = initialUnionStep;
   }
-
-  currRecur = new CalpontSelectExecutionPlan(*prevRecur);
-
-  CalpontSelectExecutionPlan::SelectList currDerivedTbList;
-
-  currDerivedTbList.push_back(SCEP(prevRecur));
-  currRecur->derivedTableList(currDerivedTbList);
-
-  SJSTEP sub = doUnionSub(currRecur, jobInfo);
-  querySteps.push_back(sub);
-  unionFeeders.push_back(sub);
-
-  for (int i = 0; i < 5; ++i)
+  else
   {
-    prevRecur = currRecur;
+    CalpontSelectExecutionPlan::SelectList& selectVec = csep->unionVec();
+    uint8_t distinctUnionNum = csep->distinctUnionNum();
+    RetColsVector unionRetCols = csep->returnedCols();
+    JobStepVector unionFeeders;
 
-    currRecur = new CalpontSelectExecutionPlan(*prevRecur);
+    for (CalpontSelectExecutionPlan::SelectList::iterator cit = selectVec.begin(); cit != selectVec.end();
+         cit++)
+    {
+      // @bug4848, enhance and unify limit handling.
+      SJSTEP sub = doUnionSub(cit->get(), jobInfo);
+      querySteps.push_back(sub);
+      unionFeeders.push_back(sub);
+    }
 
-    CalpontSelectExecutionPlan::SelectList secDerivedTbList;
+    jobInfo.deliveredCols = unionRetCols;
 
-    secDerivedTbList.push_back(SCEP(prevRecur));
-    currRecur->derivedTableList(secDerivedTbList);
-
-    sub = doUnionSub(currRecur, jobInfo);
-    querySteps.push_back(sub);
-    unionFeeders.push_back(sub);
+    SJSTEP unionStep(unionQueries(unionFeeders, distinctUnionNum, jobInfo));
+    querySteps.push_back(unionStep);
+    uint16_t stepNo = jobInfo.subId * 10000;
+    numberSteps(querySteps, stepNo, jobInfo.traceFlags);
+    deliverySteps[execplan::CNX_VTABLE_ID] = unionStep;
   }
-
-  jobInfo.deliveredCols = unionRetCols;
-
-  // Create the initial union step from the original feeders.
-  SJSTEP initialUnionStep(unionQueries(unionFeeders, distinctUnionNum, jobInfo));
-  querySteps.push_back(initialUnionStep);
-
-  uint16_t stepNo = jobInfo.subId * 10000;
-  numberSteps(querySteps, stepNo, jobInfo.traceFlags);
-
-  // The final result delivered to the connection is from the wrapper step.
-  deliverySteps[execplan::CNX_VTABLE_ID] = initialUnionStep;
 }
 }  // namespace joblist
 

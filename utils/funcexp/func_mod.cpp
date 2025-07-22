@@ -106,7 +106,7 @@ IDB_Decimal Func_mod::getDecimalVal(Row& row, FunctionParm& parm, bool& isNull,
   }
 
   IDB_Decimal d = parm[0]->data()->getDecimalVal(row, isNull);
-  int64_t value = d.value / pow(10.0, d.scale);
+  int64_t value = d.value / static_cast<int64_t>(pow(10.0, d.scale));
   int lefto = d.value % (int)pow(10.0, d.scale);
 
   int64_t mod = (value % div) * pow(10.0, d.scale) + lefto;
@@ -405,7 +405,7 @@ int64_t Func_mod::getIntVal(Row& row, FunctionParm& parm, bool& isNull,
   return mod;
 }
 
-uint64_t Func_mod::getUIntVal(Row& row, FunctionParm& parm, bool& isNull,
+uint64_t Func_mod::getUintVal(Row& row, FunctionParm& parm, bool& isNull,
                               CalpontSystemCatalog::ColType& operationColType)
 {
   if (parm.size() < 2)

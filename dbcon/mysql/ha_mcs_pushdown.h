@@ -32,16 +32,15 @@ enum mcs_handler_types_t
 {
   SELECT,
   DERIVED,
-  GROUP_BY,
   LEGACY
 };
 
 struct mcs_handler_info
 {
-  mcs_handler_info() : hndl_ptr(NULL), hndl_type(LEGACY){};
-  mcs_handler_info(mcs_handler_types_t type) : hndl_ptr(NULL), hndl_type(type){};
+  mcs_handler_info() : hndl_ptr(nullptr), hndl_type(LEGACY){};
+  mcs_handler_info(mcs_handler_types_t type) : hndl_ptr(nullptr), hndl_type(type){};
   mcs_handler_info(void* ptr, mcs_handler_types_t type) : hndl_ptr(ptr), hndl_type(type){};
-  ~mcs_handler_info(){};
+  ~mcs_handler_info() = default;
   void* hndl_ptr;
   mcs_handler_types_t hndl_type;
 };
@@ -81,7 +80,7 @@ class ha_mcs_group_by_handler : public group_by_handler
 
  public:
   ha_mcs_group_by_handler(THD* thd_arg, Query* query);
-  ~ha_mcs_group_by_handler();
+  ~ha_mcs_group_by_handler() override;
   int init_scan() override;
   int next_row() override;
   int end_scan() override;
@@ -116,7 +115,7 @@ class ha_columnstore_derived_handler : public derived_handler
 
  public:
   ha_columnstore_derived_handler(THD* thd_arg, TABLE_LIST* tbl);
-  ~ha_columnstore_derived_handler();
+  ~ha_columnstore_derived_handler() override;
   int init_scan() override;
   int next_row() override;
   int end_scan() override;
@@ -154,7 +153,7 @@ class ha_columnstore_select_handler : public select_handler
   ha_columnstore_select_handler(THD* thd_arg, SELECT_LEX* sel_lex);
   ha_columnstore_select_handler(THD* thd_arg, SELECT_LEX_UNIT* sel_unit);
   ha_columnstore_select_handler(THD* thd_arg, SELECT_LEX* sel_lex, SELECT_LEX_UNIT* sel_unit);
-  ~ha_columnstore_select_handler();
+  ~ha_columnstore_select_handler() override;
   int init_scan() override;
   int next_row() override;
   int end_scan() override;

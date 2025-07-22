@@ -167,8 +167,10 @@ struct gp_walk_info
   bool cs_vtable_is_update_with_derive;
   bool cs_vtable_impossible_where_on_union;
 
-  bool isGroupByHandler;
   long timeZone;
+
+  // test for recursive cte
+  std::string recursiveWithTableName;
 
   // MCOL-4617 The below 2 fields are used for in-to-exists
   // predicate creation and injection. See usage in InSub::transform()
@@ -203,23 +205,22 @@ struct gp_walk_info
    , condPush(false)
    , dropCond(false)
    , internalDecimalScale(4)
-   , thd(0)
+   , thd(nullptr)
    , subSelectType(uint64_t(-1))
-   , subQuery(0)
+   , subQuery(nullptr)
    , clauseType(INIT)
    , implicitExplicitGroupBy(false)
    , disableWrapping(false)
    , aggOnSelect(false)
    , hasWindowFunc(false)
    , hasSubSelect(false)
-   , lastSub(0)
+   , lastSub(nullptr)
    , derivedTbCnt(0)
    , recursionLevel(-1)
    , recursionHWM(0)
    , inCaseStmt(false)
    , cs_vtable_is_update_with_derive(false)
    , cs_vtable_impossible_where_on_union(false)
-   , isGroupByHandler(false)
    , timeZone(timeZone_)
    , inSubQueryLHS(nullptr)
    , inSubQueryLHSItem(nullptr)
@@ -250,7 +251,8 @@ struct cal_table_info
     FROM_FILE
   };
 
-  cal_table_info() : tpl_ctx(0), c(0), msTablePtr(0), conn_hndl(0), condInfo(0), moreRows(false)
+  cal_table_info()
+   : tpl_ctx(nullptr), c(0), msTablePtr(nullptr), conn_hndl(nullptr), condInfo(nullptr), moreRows(false)
   {
   }
   sm::sp_cpsm_tplh_t tpl_ctx;
@@ -265,32 +267,6 @@ struct cal_table_info
   bool moreRows;  // are there more rows to consume (b/c of limit)
 };
 
-struct cal_group_info
-{
-  cal_group_info()
-   : groupByFields(0)
-   , groupByTables(0)
-   , groupByWhere(0)
-   , groupByGroup(0)
-   , groupByOrder(0)
-   , groupByHaving(0)
-   , groupByDistinct(false)
-  {
-  }
-  ~cal_group_info()
-  {
-  }
-
-  List<Item>* groupByFields;  // MCOL-1052 SELECT
-  TABLE_LIST* groupByTables;  // MCOL-1052 FROM
-  Item* groupByWhere;         // MCOL-1052 WHERE
-  ORDER* groupByGroup;        // MCOL-1052 GROUP BY
-  ORDER* groupByOrder;        // MCOL-1052 ORDER BY
-  Item* groupByHaving;        // MCOL-1052 HAVING
-  bool groupByDistinct;       // MCOL-1052 DISTINCT
-  std::vector<execplan::ParseTree*> pushedPts;
-};
-
 typedef std::tr1::unordered_map<TABLE*, cal_table_info> CalTableMap;
 typedef std::vector<std::string> ColNameList;
 typedef std::bitset<4096> NullValuesBitset;
@@ -303,7 +279,7 @@ struct cal_connection_info
     ALTER_FIRST_RENAME
   };
   cal_connection_info()
-   : cal_conn_hndl(0)
+   : cal_conn_hndl(nullptr)
    , queryState(0)
    , currentTable(0)
    , traceFlags(0)
@@ -313,7 +289,7 @@ struct cal_connection_info
    , singleInsert(true)
    , isLoaddataInfile(false)
    , isCacheInsert(false)
-   , dmlProc(0)
+   , dmlProc(nullptr)
    , rowsHaveInserted(0)
    , rc(0)
    , tableOid(0)
@@ -322,7 +298,7 @@ struct cal_connection_info
    , expressionId(0)
    , mysqld_pid(getpid())
    , cpimport_pid(0)
-   , filePtr(0)
+   , filePtr(nullptr)
    , headerLength(0)
    , useXbit(false)
    , useCpimport(mcs_use_import_for_batchinsert_mode_t::ON)
@@ -414,7 +390,6 @@ const std::string infinidb_err_msg =
 
 int cp_get_plan(THD* thd, execplan::SCSEP& csep);
 int cp_get_table_plan(THD* thd, execplan::SCSEP& csep, cal_impl_if::cal_table_info& ti, long timeZone);
-int cp_get_group_plan(THD* thd, execplan::SCSEP& csep, cal_impl_if::cal_group_info& gi);
 int cs_get_derived_plan(ha_columnstore_derived_handler* handler, THD* thd, execplan::SCSEP& csep,
                         gp_walk_info& gwi);
 int cs_get_select_plan(ha_columnstore_select_handler* handler, THD* thd, execplan::SCSEP& csep,
@@ -422,14 +397,12 @@ int cs_get_select_plan(ha_columnstore_select_handler* handler, THD* thd, execpla
 int getSelectPlan(gp_walk_info& gwi, SELECT_LEX& select_lex, execplan::SCSEP& csep, bool isUnion = false,
                   bool isSelectHandlerTop = false, bool isSelectLexUnit = false,
                   const std::vector<COND*>& condStack = std::vector<COND*>());
-int getGroupPlan(gp_walk_info& gwi, SELECT_LEX& select_lex, execplan::SCSEP& csep, cal_group_info& gi,
-                 bool isUnion = false);
 void setError(THD* thd, uint32_t errcode, const std::string errmsg, gp_walk_info* gwi);
 void setError(THD* thd, uint32_t errcode, const std::string errmsg);
 void gp_walk(const Item* item, void* arg);
 void clearDeleteStacks(gp_walk_info& gwi);
 void parse_item(Item* item, std::vector<Item_field*>& field_vec, bool& hasNonSupportItem, uint16& parseInfo,
-                gp_walk_info* gwip = NULL);
+                gp_walk_info* gwip = nullptr);
 const std::string bestTableName(const Item_field* ifp);
 bool isMCSTable(TABLE* table_ptr);
 bool isForeignTableUpdate(THD* thd);

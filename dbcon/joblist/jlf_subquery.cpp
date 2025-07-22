@@ -873,4 +873,6 @@ SJSTEP doUnionSub(CalpontExecutionPlan* ep, JobInfo& jobInfo)
   return subAd;
 }
 
+
+
 }  // namespace joblist

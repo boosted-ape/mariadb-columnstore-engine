@@ -1,3 +1,5 @@
+#!/bin/bash
+
 SCRIPT_LOCATION=$(dirname "$0")
 COLUMNSTORE_MTR_SOURCE=$(realpath $SCRIPT_LOCATION/../../mysql-test/columnstore)
 INSTALLED_MTR_PATH='/usr/share/mysql/mysql-test'
@@ -39,6 +41,12 @@ if (( $# == 2 )); then
     run_suite $1 $2
     exit 1
 fi
+
+if (( $# == 1 )); then
+    run_suite $1
+    exit 1
+fi
+
 
 run_suite basic
 run_suite bugfixes

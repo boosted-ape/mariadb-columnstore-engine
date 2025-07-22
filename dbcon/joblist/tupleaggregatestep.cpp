@@ -580,16 +580,11 @@ uint32_t TupleAggregateStep::nextBand_singleThread(messageqcpp::ByteStream& bs)
 
   if (fEndOfResult)
   {
-    StepTeleStats sts;
-    sts.query_uuid = fQueryUuid;
-    sts.step_uuid = fStepUuid;
-    sts.msg_type = StepTeleStats::ST_SUMMARY;
-    sts.total_units_of_work = sts.units_of_work_completed = 1;
-    sts.rows = fRowsReturned;
+    StepTeleStats sts(fQueryUuid, fStepUuid, StepTeleStats::ST_SUMMARY, 1, 1, fRowsReturned);
     postStepSummaryTele(sts);
 
     // send an empty / error band
-    RGData rgData(fRowGroupOut, 0);
+    RGData rgData(fRowGroupOut, 0U);
     fRowGroupOut.setData(&rgData);
     fRowGroupOut.resetRowGroup(0);
     fRowGroupOut.setStatus(status());
@@ -5299,11 +5294,7 @@ void TupleAggregateStep::aggregateRowGroups()
     if (traceOn())
       dlTimes.setFirstReadTime();
 
-    StepTeleStats sts;
-    sts.query_uuid = fQueryUuid;
-    sts.step_uuid = fStepUuid;
-    sts.msg_type = StepTeleStats::ST_START;
-    sts.total_units_of_work = 1;
+    StepTeleStats sts(fQueryUuid, fStepUuid, StepTeleStats::ST_START, 1);
     postStepStartTele(sts);
 
     try
@@ -5427,11 +5418,7 @@ void TupleAggregateStep::threadedAggregateRowGroups(uint32_t threadID)
               if (traceOn())
                 dlTimes.setFirstReadTime();
 
-              StepTeleStats sts;
-              sts.query_uuid = fQueryUuid;
-              sts.step_uuid = fStepUuid;
-              sts.msg_type = StepTeleStats::ST_START;
-              sts.total_units_of_work = 1;
+              StepTeleStats sts(fQueryUuid, fStepUuid, StepTeleStats::ST_START, 1);
               postStepStartTele(sts);
             }
 
@@ -5645,7 +5632,7 @@ void TupleAggregateStep::threadedAggregateRowGroups(uint32_t threadID)
     {
       handleException(std::current_exception(), logging::tupleAggregateStepErr,
                       logging::ERR_AGGREGATION_TOO_BIG,
-                      "TupleAggregateStep::threadedAggregateRowGroups()[" + std::to_string(threadID) + "]");
+                      "TupleAggregateStep::threadedAggregateRowGroups()");
       fEndOfResult = true;
       fDoneAggregate = true;
     }
@@ -5710,12 +5697,7 @@ void TupleAggregateStep::doAggregate_singleThread()
   if (traceOn())
     printCalTrace();
 
-  StepTeleStats sts;
-  sts.query_uuid = fQueryUuid;
-  sts.step_uuid = fStepUuid;
-  sts.msg_type = StepTeleStats::ST_SUMMARY;
-  sts.total_units_of_work = sts.units_of_work_completed = 1;
-  sts.rows = fRowsReturned;
+  StepTeleStats sts(fQueryUuid, fStepUuid, StepTeleStats::ST_SUMMARY, 1, 1, fRowsReturned);
   postStepSummaryTele(sts);
 
   // Bug 3136, let mini stats to be formatted if traceOn.
@@ -5957,12 +5939,7 @@ uint64_t TupleAggregateStep::doThreadedAggregate(ByteStream& bs, RowGroupDL* dlp
 
   if (fEndOfResult)
   {
-    StepTeleStats sts;
-    sts.query_uuid = fQueryUuid;
-    sts.step_uuid = fStepUuid;
-    sts.msg_type = StepTeleStats::ST_SUMMARY;
-    sts.total_units_of_work = sts.units_of_work_completed = 1;
-    sts.rows = fRowsReturned;
+    StepTeleStats sts(fQueryUuid, fStepUuid, StepTeleStats::ST_SUMMARY, 1, 1, fRowsReturned);
     postStepSummaryTele(sts);
 
     if (dlp)
@@ -5972,7 +5949,7 @@ uint64_t TupleAggregateStep::doThreadedAggregate(ByteStream& bs, RowGroupDL* dlp
     else
     {
       // send an empty / error band
-      RGData rgData(fRowGroupOut, 0);
+      RGData rgData(fRowGroupOut, 0U);
       fRowGroupOut.setData(&rgData);
       fRowGroupOut.resetRowGroup(0);
       fRowGroupOut.setStatus(status());

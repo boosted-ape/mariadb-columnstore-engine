@@ -71,7 +71,7 @@ class SubQueryTransformer
    *  @param b if the subquery is in FROM clause
    *  @returns boost::shared_ptr<JobStep>
    */
-  virtual SJSTEP& makeSubQueryStep(execplan::CalpontSelectExecutionPlan*, bool b = false);
+  virtual SJSTEP& makeSubQueryStep(execplan::CalpontSelectExecutionPlan*, bool b = false, bool c = false);
 
   virtual SJSTEP& makeSubQueryStep(JobStepVector& initialQuerySteps,
                                                DeliveredTableMap& initialDeliverySteps,

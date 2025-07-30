@@ -472,6 +472,7 @@ void CalpontSelectExecutionPlan::serialize(messageqcpp::ByteStream& b) const
   b << fPron;
   b << (uint8_t)fWithRollup;
   b << (uint8_t)fIsRecursiveWithTable;
+  b << (uint8_t)fIsRecursiveQuery;
 }
 
 void CalpontSelectExecutionPlan::unserialize(messageqcpp::ByteStream& b)
@@ -678,6 +679,8 @@ void CalpontSelectExecutionPlan::unserialize(messageqcpp::ByteStream& b)
   fWithRollup = tmp8;
   b >> tmp8;
   fIsRecursiveWithTable = tmp8;
+  b >> tmp8;
+  fIsRecursiveQuery = tmp8;
 }
 
 bool CalpontSelectExecutionPlan::operator==(const CalpontSelectExecutionPlan& t) const

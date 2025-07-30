@@ -755,6 +755,15 @@ class CalpontSelectExecutionPlan : public CalpontExecutionPlan
     return fIsRecursiveWithTable;
   }
 
+  void isRecursiveQuery(bool b)
+  {
+    fIsRecursiveQuery = b;
+  }
+  bool isRecursiveQuery() const
+  {
+    return fIsRecursiveQuery;
+  }
+
   void timeZone(const long timezone)
   {
     fTimeZone = timezone;
@@ -984,6 +993,7 @@ class CalpontSelectExecutionPlan : public CalpontExecutionPlan
 
   // A flag to indicate recursive CTE.
   bool fIsRecursiveWithTable = false;
+  bool fIsRecursiveQuery = false;
 };
 
 /**

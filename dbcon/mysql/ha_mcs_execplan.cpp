@@ -7060,7 +7060,7 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
       }
       if (table_ptr->is_recursive_with_table())
       {
-        dynamic_cast<CalpontSelectExecutionPlan*>(csep.get())->isRecursiveWithTable(true);
+        dynamic_cast<CalpontSelectExecutionPlan*>(csep.get())->isRecursiveQuery(true);
         SELECT_LEX* start = table_ptr->derived->first_select();
         // SELECT_LEX* end = NULL;
 
@@ -7283,8 +7283,8 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
       // distinct union num
       if (sl == select_lex.master_unit()->union_distinct)
         distUnionNum = unionVec.size();
-      if (sl->get_table_list()->is_recursive_with_table())
-        break;
+      // if (sl->get_table_list()->is_recursive_with_table())
+      //   break;
     }
 
     csep->unionVec(unionVec);

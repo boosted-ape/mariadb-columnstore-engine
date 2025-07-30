@@ -77,7 +77,7 @@ SubQueryTransformer::~SubQueryTransformer()
 }
 
 SJSTEP& SubQueryTransformer::makeSubQueryStep(execplan::CalpontSelectExecutionPlan* csep,
-                                              bool subInFromClause)
+                                              bool subInFromClause, bool passTable)
 {
   if (fOutJobInfo->trace)
     cout << (*csep) << endl;
@@ -130,6 +130,10 @@ SJSTEP& SubQueryTransformer::makeSubQueryStep(execplan::CalpontSelectExecutionPl
     ostringstream oss;
     oss << "$sub_" << fSubJobInfo->subId << "_" << fSubJobInfo->subLevel << "_" << fOutJobInfo->subNum;
     fVtable.alias(oss.str());
+  }
+
+  if (passTable){
+    fSubJobInfo->tableList = fOutJobInfo->tableList;
   }
 
   fSubJobInfo->subAlias = fVtable.alias();  //@bug5844, unique alias for sub

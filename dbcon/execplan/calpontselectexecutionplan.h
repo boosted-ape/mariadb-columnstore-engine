@@ -486,6 +486,12 @@ class CalpontSelectExecutionPlan : public CalpontExecutionPlan
   {
     return fDerivedTableList;
   }
+
+  SelectList& derivedTableList()
+  {
+    return fDerivedTableList;
+  }
+
   void derivedTableList(SelectList& derivedTableList)
   {
     fDerivedTableList = derivedTableList;

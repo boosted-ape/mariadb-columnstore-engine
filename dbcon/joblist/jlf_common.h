@@ -328,6 +328,7 @@ struct JobInfo
   JobStepVector selectAndFromSubs;
   std::set<uint64_t> returnColSet;
   std::map<UniqId, execplan::CalpontSystemCatalog::ColType> vtableColTypes;
+  std::vector<uint32>::iterator baseTablesEnd;
 
   // step to process orderby, limit and fill in constants
   SJSTEP annexStep;

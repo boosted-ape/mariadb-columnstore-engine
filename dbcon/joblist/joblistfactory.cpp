@@ -1999,6 +1999,7 @@ void makeUnionJobSteps(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo, JobSt
     // CalpontSelectExecutionPlan* currRecur;
 
     SJSTEP sub;
+    std::vector<uint32> tableUids;  // for keeping track of anchor tables
 
     for (CalpontSelectExecutionPlan::SelectList::iterator cit = selectVec.begin(); cit != selectVec.end();
          ++cit)
@@ -2006,21 +2007,37 @@ void makeUnionJobSteps(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo, JobSt
       // @bug4848, enhance and unify limit handling.
       // prevRecur = dynamic_cast<CalpontSelectExecutionPlan*>(cit->get());
 
-      sub = doUnionSub(cit->get(), jobInfo);
-      querySteps.push_back(sub);
-      unionFeeders.push_back(sub);
+      CalpontSelectExecutionPlan* subCsep = dynamic_cast<CalpontSelectExecutionPlan*>(cit->get());
 
-      //*(((((SubQueryStep*)(((SubAdapterStep*)sub.get())->subStep().get()))->subJoblist()).get())->fQuery[0].get())
-      // test
-      if (cit != selectVec.begin())
+      if (!subCsep->isRecursiveQuery())
       {
-        bool test = *(((CalpontSelectExecutionPlan*)(selectVec.begin()->get()))) ==
-                    *((CalpontSelectExecutionPlan*)(((CalpontSelectExecutionPlan*)(cit->get()))
-                                                        ->derivedTableList()
-                                                        .begin()
-                                                        ->get()));
-        (void)test;
+        sub = doUnionSub(cit->get(), jobInfo);
+        querySteps.push_back(sub);
+        unionFeeders.push_back(sub);
+        tableUids.push_back(getTableKey(jobInfo, sub.get()));
       }
+      else
+      {
+        CalpontSelectExecutionPlan::SelectList derivedTableList = csep->derivedTableList();
+        derivedTableList.erase(
+            std::remove_if(derivedTableList.begin(), derivedTableList.end(),
+                           [](SCEP scep)
+                           {
+                             auto plan = dynamic_cast<CalpontSelectExecutionPlan*>(scep.get());
+                             if (plan)
+                             {
+                               return plan->isRecursiveWithTable();
+                             }
+                             return false;
+                           }),
+            derivedTableList.end());
+        jobInfo.baseTablesEnd = jobInfo.tableList.end();
+        jobInfo.tableList.insert(jobInfo.tableList.end(), tableUids.begin(), tableUids.end());
+        sub = doUnionSub(cit->get(), jobInfo);
+        querySteps.push_back(sub);
+        unionFeeders.push_back(sub);
+      }
+      //*(((((SubQueryStep*)(((SubAdapterStep*)sub.get())->subStep().get()))->subJoblist()).get())->fQuery[0].get())
     }
 
     // tbps->setOutputRowGroup(rg);

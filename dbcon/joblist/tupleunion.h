@@ -27,7 +27,9 @@
 //
 //
 
+#include "joblist.h"
 #include "jobstep.h"
+#include <boost/smart_ptr/shared_ptr.hpp>
 #include <tr1/unordered_set>
 
 #include "stlpoolallocator.h"
@@ -35,10 +37,13 @@
 
 #pragma once
 
+
 namespace joblist
 {
 using normalizeFunctionsT =
     std::vector<std::function<void(const rowgroup::Row& in, rowgroup::Row* out, uint32_t col)>>;
+
+typedef boost::shared_ptr<JobStepVector> SJSV;
 
 class TupleUnion : public JobStep, public TupleDeliveryStep
 {
@@ -205,7 +210,7 @@ class TupleUnion : public JobStep, public TupleDeliveryStep
 class TupleRecursiveUnion : public JobStep, public TupleDeliveryStep
 {
  public:
-  TupleRecursiveUnion(execplan::CalpontSystemCatalog::OID tableOID, const JobInfo& jobInfo);
+  TupleRecursiveUnion(execplan::CalpontSystemCatalog::OID tableOID, const JobInfo& jobInfo, SJSV recursiveQueries);
   ~TupleRecursiveUnion() override;
 
   void run() override;
@@ -233,6 +238,10 @@ class TupleRecursiveUnion : public JobStep, public TupleDeliveryStep
   bool deliverStringTableRowGroup() const override
   {
     return outputRG.usesStringTable();
+  }
+
+  const SJSV getRecursiveQueries() const {
+    return fRecursiveQueries;
   }
 
   // @bug 598 for self-join
@@ -362,6 +371,7 @@ class TupleRecursiveUnion : public JobStep, public TupleDeliveryStep
 
   boost::shared_ptr<int64_t> sessionMemLimit;
   long fTimeZone;
+  SJSV fRecursiveQueries;
 };
 
 }  // namespace joblist

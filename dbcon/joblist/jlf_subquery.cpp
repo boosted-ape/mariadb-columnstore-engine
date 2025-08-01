@@ -873,6 +873,18 @@ SJSTEP doUnionSub(CalpontExecutionPlan* ep, JobInfo& jobInfo)
   return subAd;
 }
 
+SJSTEP doRecursiveUnionSub(CalpontExecutionPlan* ep, JobInfo& jobInfo)
+{
+  CalpontSelectExecutionPlan* csep = dynamic_cast<CalpontSelectExecutionPlan*>(ep);
+  SErrorInfo errorInfo(jobInfo.errorInfo);
+  SubQueryTransformer transformer(&jobInfo, errorInfo);
+  transformer.setVarbinaryOK();
+  SJSTEP subQueryStep = transformer.makeSubQueryStep(csep, false);
+  JobInfo jobInfo1 = jobInfo;
+  jobInfo1.scsep = SCSEP(csep);
+  SJSTEP subAd(new SubAdapterStep(subQueryStep, jobInfo1));
+  return subAd;
+}
 
 
 }  // namespace joblist

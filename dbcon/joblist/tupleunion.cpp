@@ -1918,7 +1918,7 @@ inline bool TupleRecursiveUnion::Eq::operator()(const RowPosition& d1, const Row
   return r1.equals(r2);
 }
 
-TupleRecursiveUnion::TupleRecursiveUnion(CalpontSystemCatalog::OID tableOID, const JobInfo& jobInfo)
+TupleRecursiveUnion::TupleRecursiveUnion(CalpontSystemCatalog::OID tableOID, const JobInfo& jobInfo, SJSV recursiveQueries)
  : JobStep(jobInfo)
  , fTableOID(tableOID)
  , output(NULL)
@@ -1933,6 +1933,7 @@ TupleRecursiveUnion::TupleRecursiveUnion(CalpontSystemCatalog::OID tableOID, con
  , joinRan(false)
  , sessionMemLimit(jobInfo.umMemLimit)
  , fTimeZone(jobInfo.timeZone)
+ , fRecursiveQueries(recursiveQueries)
 {
   uniquer.reset(new Uniquer_t(10, Hasher(this), Eq(this), allocator));
   fExtendedInfo = "TUN: ";

@@ -49,4 +49,6 @@ void preprocessSelectSubquery(execplan::CalpontSelectExecutionPlan*, JobInfo&);
 
 SJSTEP doUnionSub(execplan::CalpontExecutionPlan*, JobInfo&);
 
+SJSTEP doRecursiveUnionSub(execplan::CalpontExecutionPlan*, JobInfo&);
+
 }  // namespace joblist

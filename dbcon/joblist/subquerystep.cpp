@@ -146,6 +146,7 @@ SubAdapterStep::SubAdapterStep(SJSTEP& s, const JobInfo& jobInfo)
  , fInputIterator(0)
  , fOutputIterator(0)
  , fRunner(0)
+ , fJobInfo(jobInfo)
 {
   fExtendedInfo = "SAS: ";
   fAlias = s->alias();

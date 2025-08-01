@@ -26,8 +26,10 @@
 
 #include <boost/thread.hpp>
 
+#include "calpontselectexecutionplan.h"
 #include "jobstep.h"
 #include "joblist.h"
+#include "jlf_common.h"
 #include "funcexpwrapper.h"
 #include "threadnaming.h"
 
@@ -117,6 +119,8 @@ class SubQueryStep : public JobStep
   STJLP fSubJobList;
 
   boost::scoped_ptr<boost::thread> fRunner;
+
+  
 };
 
 class SubAdapterStep : public JobStep, public TupleDeliveryStep
@@ -248,11 +252,13 @@ class SubAdapterStep : public JobStep, public TupleDeliveryStep
   bool fEndOfResult;
   std::shared_ptr<int[]> fIndexMap;
   std::vector<std::pair<uint32_t, uint32_t> > fDupColumns;
+  
 
   RowGroupDL* fInputDL;
   RowGroupDL* fOutputDL;
   uint64_t fInputIterator;
   uint64_t fOutputIterator;
+
 
   class Runner
   {
@@ -269,6 +275,8 @@ class SubAdapterStep : public JobStep, public TupleDeliveryStep
     SubAdapterStep* fStep;
   };
   uint64_t fRunner;  // thread pool handle
+
+  JobInfo fJobInfo;
 
   boost::scoped_ptr<funcexp::FuncExpWrapper> fExpression;
 };

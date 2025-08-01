@@ -1995,49 +1995,61 @@ void makeUnionJobSteps(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo, JobSt
     RetColsVector unionRetCols = csep->returnedCols();
     JobStepVector unionFeeders;
 
+    auto partitionPoint = std::partition(selectVec.begin(), selectVec.end(),
+                                         [](SCEP scep)
+                                         {
+                                           auto plan = dynamic_cast<CalpontSelectExecutionPlan*>(scep.get());
+                                           if (plan)
+                                           {
+                                             return !plan->isRecursiveQuery();
+                                           }
+                                           return false;
+                                         });
+
     // CalpontSelectExecutionPlan* prevRecur;
     // CalpontSelectExecutionPlan* currRecur;
 
     SJSTEP sub;
     std::vector<uint32> tableUids;  // for keeping track of anchor tables
+    JobStepVector recursiveFeeders;
 
-    for (CalpontSelectExecutionPlan::SelectList::iterator cit = selectVec.begin(); cit != selectVec.end();
+    for (CalpontSelectExecutionPlan::SelectList::iterator cit = selectVec.begin(); cit != partitionPoint;
          ++cit)
     {
       // @bug4848, enhance and unify limit handling.
       // prevRecur = dynamic_cast<CalpontSelectExecutionPlan*>(cit->get());
 
-      CalpontSelectExecutionPlan* subCsep = dynamic_cast<CalpontSelectExecutionPlan*>(cit->get());
+      sub = doUnionSub(cit->get(), jobInfo);
+      querySteps.push_back(sub);
+      unionFeeders.push_back(sub);
+      tableUids.push_back(getTableKey(jobInfo, sub.get()));
 
-      if (!subCsep->isRecursiveQuery())
-      {
-        sub = doUnionSub(cit->get(), jobInfo);
-        querySteps.push_back(sub);
-        unionFeeders.push_back(sub);
-        tableUids.push_back(getTableKey(jobInfo, sub.get()));
-      }
-      else
-      {
-        CalpontSelectExecutionPlan::SelectList derivedTableList = csep->derivedTableList();
-        derivedTableList.erase(
-            std::remove_if(derivedTableList.begin(), derivedTableList.end(),
-                           [](SCEP scep)
-                           {
-                             auto plan = dynamic_cast<CalpontSelectExecutionPlan*>(scep.get());
-                             if (plan)
-                             {
-                               return plan->isRecursiveWithTable();
-                             }
-                             return false;
-                           }),
-            derivedTableList.end());
-        jobInfo.baseTablesEnd = jobInfo.tableList.end();
-        jobInfo.tableList.insert(jobInfo.tableList.end(), tableUids.begin(), tableUids.end());
-        sub = doUnionSub(cit->get(), jobInfo);
-        querySteps.push_back(sub);
-        unionFeeders.push_back(sub);
-      }
       //*(((((SubQueryStep*)(((SubAdapterStep*)sub.get())->subStep().get()))->subJoblist()).get())->fQuery[0].get())
+    }
+
+    for (auto cit = partitionPoint; cit != selectVec.end();
+         ++cit)
+    {
+      CalpontSelectExecutionPlan* subCsep = dynamic_cast<CalpontSelectExecutionPlan*>(cit->get());
+      CalpontSelectExecutionPlan::SelectList derivedTableList = subCsep->derivedTableList();
+      derivedTableList.erase(std::remove_if(derivedTableList.begin(), derivedTableList.end(),
+                                            [](SCEP scep)
+                                            {
+                                              auto plan =
+                                                  dynamic_cast<CalpontSelectExecutionPlan*>(scep.get());
+                                              if (plan)
+                                              {
+                                                return plan->isRecursiveWithTable();
+                                              }
+                                              return false;
+                                            }),
+                             derivedTableList.end());
+      jobInfo.baseTablesEnd = jobInfo.tableList.end();
+      jobInfo.tableList.insert(jobInfo.tableList.end(), tableUids.begin(), tableUids.end());
+      sub = doRecursiveUnionSub(cit->get(), jobInfo);
+      querySteps.push_back(sub);
+      unionFeeders.push_back(sub);
+      recursiveFeeders.push_back(sub);
     }
 
     // tbps->setOutputRowGroup(rg);
@@ -2076,7 +2088,7 @@ void makeUnionJobSteps(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo, JobSt
     jobInfo.deliveredCols = unionRetCols;
 
     // Create the initial union step from the original feeders.
-    SJSTEP initialUnionStep(unionQueries(unionFeeders, distinctUnionNum, jobInfo));
+    SJSTEP initialUnionStep(recursiveUnionQueries(unionFeeders, distinctUnionNum, jobInfo, recursiveFeeders));
     querySteps.push_back(initialUnionStep);
 
     uint16_t stepNo = jobInfo.subId * 10000;

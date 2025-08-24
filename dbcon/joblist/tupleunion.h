@@ -37,7 +37,6 @@
 
 #pragma once
 
-
 namespace joblist
 {
 using normalizeFunctionsT =
@@ -121,7 +120,7 @@ class TupleUnion : public JobStep, public TupleDeliveryStep
     uint64_t group : 48;
     uint64_t row : 16;
 
-    inline explicit RowPosition(uint64_t i = 0, uint64_t j = 0) : group(i), row(j) {};
+    inline explicit RowPosition(uint64_t i = 0, uint64_t j = 0) : group(i), row(j){};
     static const uint64_t normalizedFlag = 0x800000000000ULL;  // 48th bit is set
   };
 
@@ -210,7 +209,7 @@ class TupleUnion : public JobStep, public TupleDeliveryStep
 class TupleRecursiveUnion : public JobStep, public TupleDeliveryStep
 {
  public:
-  TupleRecursiveUnion(execplan::CalpontSystemCatalog::OID tableOID, const JobInfo& jobInfo, SJSV recursiveQueries);
+  TupleRecursiveUnion(execplan::CalpontSystemCatalog::OID tableOID, const JobInfo& jobInfo);
   ~TupleRecursiveUnion() override;
 
   void run() override;
@@ -240,7 +239,8 @@ class TupleRecursiveUnion : public JobStep, public TupleDeliveryStep
     return outputRG.usesStringTable();
   }
 
-  const SJSV getRecursiveQueries() const {
+  const SJSV getRecursiveQueries() const
+  {
     return fRecursiveQueries;
   }
 
@@ -287,7 +287,7 @@ class TupleRecursiveUnion : public JobStep, public TupleDeliveryStep
     uint64_t group : 48;
     uint64_t row : 16;
 
-    inline explicit RowPosition(uint64_t i = 0, uint64_t j = 0) : group(i), row(j) {};
+    inline explicit RowPosition(uint64_t i = 0, uint64_t j = 0) : group(i), row(j){};
     static const uint64_t normalizedFlag = 0x800000000000ULL;  // 48th bit is set
   };
 

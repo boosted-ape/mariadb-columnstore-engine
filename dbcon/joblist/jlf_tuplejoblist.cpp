@@ -25,8 +25,8 @@
 #include <stack>
 #include <iterator>
 #include <algorithm>
-//#define NDEBUG
-//#include <cassert>
+// #define NDEBUG
+// #include <cassert>
 #include <vector>
 #include <set>
 #include <map>
@@ -4412,7 +4412,7 @@ void associateTupleJobSteps(JobStepVector& querySteps, JobStepVector& projectSte
     const boost::shared_ptr<TupleKeyInfo>& keyInfo = jobInfo.keyInfo;
     cout << "query steps:" << endl;
 
-    for (const auto& step: querySteps)
+    for (const auto& step : querySteps)
     {
       auto* thjs = dynamic_cast<TupleHashJoinStep*>(step.get());
 
@@ -4435,7 +4435,7 @@ void associateTupleJobSteps(JobStepVector& querySteps, JobStepVector& projectSte
 
     cout << "project steps:" << endl;
 
-    for (const auto& prStep: projectSteps)
+    for (const auto& prStep : projectSteps)
     {
       cout << typeid(prStep.get()).name() << ": " << prStep->oid() << " " << prStep->tupleId() << " "
            << getTableKey(jobInfo, prStep->tupleId()) << endl;
@@ -4443,7 +4443,7 @@ void associateTupleJobSteps(JobStepVector& querySteps, JobStepVector& projectSte
 
     cout << "delivery steps:" << endl;
 
-    for (const auto& [_, value]: deliverySteps)
+    for (const auto& [_, value] : deliverySteps)
     {
       cout << typeid(value.get()).name() << endl;
     }
@@ -4604,7 +4604,7 @@ void associateTupleJobSteps(JobStepVector& querySteps, JobStepVector& projectSte
 
   // Make sure each query step has an output DL
   // This is necessary for toString() method on most steps
-  for (auto& step: steps)
+  for (auto& step : steps)
   {
     // if (dynamic_cast<OrDelimiter*>(it->get()))
     //	continue;
@@ -4796,7 +4796,7 @@ void associateTupleJobSteps(JobStepVector& querySteps, JobStepVector& projectSte
       bool tableInOuterQuery = false;
       set<uint32_t> tableSet;  // involved unique tables
 
-      for (unsigned int table: tables)
+      for (unsigned int table : tables)
       {
         if (find(jobInfo.tableList.begin(), jobInfo.tableList.end(), table) != jobInfo.tableList.end())
           tableSet.insert(table);
@@ -5037,7 +5037,7 @@ void associateTupleJobSteps(JobStepVector& querySteps, JobStepVector& projectSte
   joinTables(joinSteps, tableInfoMap, jobInfo, joinOrder, overrideLargeSideEstimate);
 
   // 3. put the steps together
-  for (uint32_t i: joinOrder)
+  for (uint32_t i : joinOrder)
     querySteps.insert(querySteps.end(), tableInfoMap[i].fQuerySteps.begin(),
                       tableInfoMap[i].fQuerySteps.end());
 
@@ -5190,8 +5190,8 @@ SJSTEP unionQueries(JobStepVector& queries, uint64_t distinctUnionNum, JobInfo& 
   return SJSTEP(unionStep);
 }
 
-
-SJSTEP recursiveUnionQueries(JobStepVector& queries, uint64_t distinctUnionNum, JobInfo& jobInfo, JobStepVector& recursiveQueries)
+SJSTEP recursiveUnionQueries(JobStepVector& queries, uint64_t distinctUnionNum, JobInfo& jobInfo,
+                             JobStepVector& recurQueries)
 {
   vector<RowGroup> inputRGs;
   vector<bool> distinct;
@@ -5210,7 +5210,7 @@ SJSTEP recursiveUnionQueries(JobStepVector& queries, uint64_t distinctUnionNum, 
   vector<vector<CalpontSystemCatalog::ColType>> queryColTypes;
 
   for (uint64_t j = 0; j < colCount; ++j)
-    queryColTypes.push_back(vector<CalpontSystemCatalog::ColType>(queries.size()));
+    queryColTypes.push_back(vector<CalpontSystemCatalog::ColType>(queries.size() + recurQueries.size()));
 
   for (uint64_t i = 0; i < queries.size(); i++)
   {
@@ -5260,13 +5260,63 @@ SJSTEP recursiveUnionQueries(JobStepVector& queries, uint64_t distinctUnionNum, 
     jsaToUnion.outAdd(spdl);
   }
 
+  for (uint64_t i = 0; i < recurQueries.size(); i++)
+  {
+    SJSTEP spjs = recurQueries[i];
+    TupleDeliveryStep* tds = dynamic_cast<TupleDeliveryStep*>(spjs.get());
+
+    if (tds == NULL)
+    {
+      throw runtime_error("Not a deliverable step.");
+    }
+
+    const RowGroup& rg = tds->getDeliveredRowGroup();
+    inputRGs.push_back(rg);
+
+    const vector<uint32_t>& scaleIn = rg.getScale();
+    const vector<uint32_t>& precisionIn = rg.getPrecision();
+    const vector<CalpontSystemCatalog::ColDataType>& typesIn = rg.getColTypes();
+    const vector<uint32_t>& csNumsIn = rg.getCharsetNumbers();
+
+    for (uint64_t j = 0; j < colCount; ++j)
+    {
+      queryColTypes[j][i + queries.size()].colDataType = typesIn[j];
+      queryColTypes[j][i + queries.size()].charsetNumber = csNumsIn[j];
+      queryColTypes[j][i + queries.size()].scale = scaleIn[j];
+      queryColTypes[j][i + queries.size()].precision = precisionIn[j];
+      queryColTypes[j][i + queries.size()].colWidth = rg.getColumnWidth(j);
+    }
+
+    // if all union types are UNION_ALL, distinctUnionNum is 0.
+    distinct.push_back(distinctUnionNum > i);
+
+    // mostly should have initialised DLs hence the change
+    if (i < recurQueries.size() - 1)
+    {
+      AnyDataListSPtr spdl = spjs->outputAssociation().outAt(0);
+      spdl->rowGroupDL()->setNumConsumers(2);
+      jsaToUnion.outAdd(spdl);
+    }
+    else
+    {
+      AnyDataListSPtr spdl(new AnyDataList());
+      RowGroupDL* dl = new RowGroupDL(1, jobInfo.fifoSize);
+      spdl->rowGroupDL(dl);
+      dl->OID(CNX_VTABLE_ID);
+      JobStepAssociation jsa;
+      jsa.outAdd(spdl);
+      spjs->outputAssociation(jsa);
+      jsaToUnion.outAdd(spdl);
+    }
+  }
+
   AnyDataListSPtr spdl(new AnyDataList());
   RowGroupDL* dl = new RowGroupDL(1, jobInfo.fifoSize);
   spdl->rowGroupDL(dl);
   dl->OID(CNX_VTABLE_ID);
   JobStepAssociation jsa;
   jsa.outAdd(spdl);
-  TupleRecursiveUnion* unionStep = new TupleRecursiveUnion(CNX_VTABLE_ID, jobInfo, SJSV(&recursiveQueries));
+  TupleRecursiveUnion* unionStep = new TupleRecursiveUnion(CNX_VTABLE_ID, jobInfo);
   unionStep->inputAssociation(jsaToUnion);
   unionStep->outputAssociation(jsa);
 

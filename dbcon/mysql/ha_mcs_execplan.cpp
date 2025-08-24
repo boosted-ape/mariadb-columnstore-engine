@@ -848,26 +848,16 @@ void debug_walk(const Item* item, void* arg)
           cerr << '=' << " (" << ifp->functype() << ")" << endl;
           break;
 
-        case Item_func::GE_FUNC:
-          cerr << ">="
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::GE_FUNC: cerr << ">=" << " (" << ifp->functype() << ")" << endl; break;
 
-        case Item_func::LE_FUNC:
-          cerr << "<="
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::LE_FUNC: cerr << "<=" << " (" << ifp->functype() << ")" << endl; break;
 
         case Item_func::LT_FUNC: cerr << '<' << " (" << ifp->functype() << ")" << endl; break;
 
-        case Item_func::NE_FUNC:
-          cerr << "<>"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::NE_FUNC: cerr << "<>" << " (" << ifp->functype() << ")" << endl; break;
 
         case Item_func::NEG_FUNC:  // 45
-          cerr << "unary minus"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "unary minus" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::IN_FUNC:  // 16
@@ -876,8 +866,7 @@ void debug_walk(const Item* item, void* arg)
           if (inp->negated)
             cerr << "not ";
 
-          cerr << "in"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "in" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::BETWEEN:
@@ -886,44 +875,32 @@ void debug_walk(const Item* item, void* arg)
           if (inp->negated)
             cerr << "not ";
 
-          cerr << "between"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "between" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::ISNULL_FUNC:  // 10
-          cerr << "is null"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "is null" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::ISNOTNULL_FUNC:  // 11
-          cerr << "is not null"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "is not null" << " (" << ifp->functype() << ")" << endl;
           break;
 
-        case Item_func::NOT_ALL_FUNC:
-          cerr << "not_all"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::NOT_ALL_FUNC: cerr << "not_all" << " (" << ifp->functype() << ")" << endl; break;
 
-        case Item_func::NOT_FUNC:
-          cerr << "not_func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::NOT_FUNC: cerr << "not_func" << " (" << ifp->functype() << ")" << endl; break;
 
         case Item_func::TRIG_COND_FUNC:
-          cerr << "trig_cond_func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "trig_cond_func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::ISNOTNULLTEST_FUNC:
-          cerr << "isnotnulltest_func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "isnotnulltest_func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::MULT_EQUAL_FUNC:
         {
-          cerr << "mult_equal_func:"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "mult_equal_func:" << " (" << ifp->functype() << ")" << endl;
           Item_equal* item_eq = (Item_equal*)ifp;
           Item_equal_fields_iterator it(*item_eq);
           Item* item;
@@ -937,165 +914,107 @@ void debug_walk(const Item* item, void* arg)
           break;
         }
 
-        case Item_func::EQUAL_FUNC:
-          cerr << "equal func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::EQUAL_FUNC: cerr << "equal func" << " (" << ifp->functype() << ")" << endl; break;
 
-        case Item_func::FT_FUNC:
-          cerr << "ft func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::FT_FUNC: cerr << "ft func" << " (" << ifp->functype() << ")" << endl; break;
 
-        case Item_func::LIKE_FUNC:
-          cerr << "like func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::LIKE_FUNC: cerr << "like func" << " (" << ifp->functype() << ")" << endl; break;
 
         case Item_func::COND_AND_FUNC:
-          cerr << "cond and func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "cond and func" << " (" << ifp->functype() << ")" << endl;
           break;
 
-        case Item_func::COND_OR_FUNC:
-          cerr << "cond or func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::COND_OR_FUNC: cerr << "cond or func" << " (" << ifp->functype() << ")" << endl; break;
 
-        case Item_func::XOR_FUNC:
-          cerr << "xor func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::XOR_FUNC: cerr << "xor func" << " (" << ifp->functype() << ")" << endl; break;
 
         case Item_func::INTERVAL_FUNC:
-          cerr << "interval func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "interval func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::SP_EQUALS_FUNC:
-          cerr << "sp equals func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp equals func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::SP_DISJOINT_FUNC:
-          cerr << "sp disjoint func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp disjoint func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::SP_INTERSECTS_FUNC:
-          cerr << "sp intersects func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp intersects func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::SP_TOUCHES_FUNC:
-          cerr << "sp touches func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp touches func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::SP_CROSSES_FUNC:
-          cerr << "sp crosses func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp crosses func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::SP_WITHIN_FUNC:
-          cerr << "sp within func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp within func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::SP_CONTAINS_FUNC:
-          cerr << "sp contains func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp contains func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::SP_OVERLAPS_FUNC:
-          cerr << "sp overlaps func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp overlaps func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::SP_STARTPOINT:
-          cerr << "sp startpoint func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp startpoint func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::SP_ENDPOINT:
-          cerr << "sp endpoint func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp endpoint func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::SP_EXTERIORRING:
-          cerr << "sp exteriorring func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp exteriorring func" << " (" << ifp->functype() << ")" << endl;
           break;
 
-        case Item_func::SP_POINTN:
-          cerr << "sp pointn func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::SP_POINTN: cerr << "sp pointn func" << " (" << ifp->functype() << ")" << endl; break;
 
         case Item_func::SP_GEOMETRYN:
-          cerr << "sp geometryn func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp geometryn func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::SP_INTERIORRINGN:
-          cerr << "sp exteriorringn func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp exteriorringn func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::SP_RELATE_FUNC:
-          cerr << "sp relate func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "sp relate func" << " (" << ifp->functype() << ")" << endl;
           break;
 
-        case Item_func::NOW_FUNC:
-          cerr << "now func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::NOW_FUNC: cerr << "now func" << " (" << ifp->functype() << ")" << endl; break;
 
         case Item_func::SUSERVAR_FUNC:
-          cerr << "suservar func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "suservar func" << " (" << ifp->functype() << ")" << endl;
           break;
 
         case Item_func::GUSERVAR_FUNC:
-          cerr << "guservar func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "guservar func" << " (" << ifp->functype() << ")" << endl;
           break;
 
-        case Item_func::COLLATE_FUNC:
-          cerr << "collate func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::COLLATE_FUNC: cerr << "collate func" << " (" << ifp->functype() << ")" << endl; break;
 
-        case Item_func::EXTRACT_FUNC:
-          cerr << "extract func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::EXTRACT_FUNC: cerr << "extract func" << " (" << ifp->functype() << ")" << endl; break;
 
         case Item_func::CHAR_TYPECAST_FUNC:
-          cerr << "char typecast func"
-               << " (" << ifp->functype() << ")" << endl;
+          cerr << "char typecast func" << " (" << ifp->functype() << ")" << endl;
           break;
 
-        case Item_func::FUNC_SP:
-          cerr << "func sp func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::FUNC_SP: cerr << "func sp func" << " (" << ifp->functype() << ")" << endl; break;
 
-        case Item_func::UDF_FUNC:
-          cerr << "udf func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::UDF_FUNC: cerr << "udf func" << " (" << ifp->functype() << ")" << endl; break;
 
-        case Item_func::GSYSVAR_FUNC:
-          cerr << "gsysvar func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::GSYSVAR_FUNC: cerr << "gsysvar func" << " (" << ifp->functype() << ")" << endl; break;
 
-        case Item_func::DYNCOL_FUNC:
-          cerr << "dyncol func"
-               << " (" << ifp->functype() << ")" << endl;
-          break;
+        case Item_func::DYNCOL_FUNC: cerr << "dyncol func" << " (" << ifp->functype() << ")" << endl; break;
 
         default: cerr << "type=" << ifp->functype() << endl; break;
       }
@@ -7060,7 +6979,7 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
       }
       if (table_ptr->is_recursive_with_table())
       {
-        dynamic_cast<CalpontSelectExecutionPlan*>(csep.get())->isRecursiveQuery(true);
+        dynamic_cast<CalpontSelectExecutionPlan*>(csep.get())->containsRecursiveQuery(true);
         SELECT_LEX* start = table_ptr->derived->first_select();
         // SELECT_LEX* end = NULL;
 
@@ -7069,14 +6988,15 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
         // uint8_t distUnionNum = 0;
         SCSEP anchor_plan = NULL;
 
-        #ifdef DEBUG_WALK_COND
+#ifdef DEBUG_WALK_COND
 
-        if (gwi.recursiveWithTableName == table_ptr->table_name.str){
+        if (gwi.recursiveWithTableName == table_ptr->table_name.str)
+        {
           cerr << "RECURSIVE TABLE: " << gwi.recursiveWithTableName << endl;
         }
 
-        #endif
-        
+#endif
+
         gwi.recursiveWithTableName = table_ptr->table_name.str;
 
         FromSubQuery* fromSub = new FromSubQuery(gwi, start);
@@ -7087,7 +7007,8 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
         }
         fromSub->alias(alias);
 
-        CalpontSystemCatalog::TableAliasName tn = make_aliasview("", table_ptr->table_name.str, alias, viewName);
+        CalpontSystemCatalog::TableAliasName tn =
+            make_aliasview("", table_ptr->table_name.str, alias, viewName);
         // @bug 3852. check return execplan
         anchor_plan = fromSub->transform(isUnion);
         dynamic_cast<CalpontSelectExecutionPlan*>(anchor_plan.get())->isRecursiveWithTable(true);
@@ -7141,7 +7062,8 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
         }
         fromSub->alias(alias);
 
-        CalpontSystemCatalog::TableAliasName tn = make_aliasview("", table_ptr->table_name.str, alias, viewName);
+        CalpontSystemCatalog::TableAliasName tn =
+            make_aliasview("", table_ptr->table_name.str, alias, viewName);
         // @bug 3852. check return execplan
         SCSEP plan = fromSub->transform();
 
@@ -7150,6 +7072,11 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
           setError(gwi.thd, ER_INTERNAL_ERROR, fromSub->gwip().parseErrorText, gwi);
           CalpontSystemCatalog::removeCalpontSystemCatalog(gwi.sessionid);
           return ER_INTERNAL_ERROR;
+        }
+
+        if (plan->containsRecursiveQuery())
+        {
+          csep->containsRecursiveQuery(true);
         }
 
         gwi.derivedTbList.push_back(plan);

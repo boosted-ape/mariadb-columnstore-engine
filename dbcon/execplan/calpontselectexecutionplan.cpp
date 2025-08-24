@@ -121,7 +121,10 @@ CalpontSelectExecutionPlan::CalpontSelectExecutionPlan(ReturnedColumnList return
 }
 
 CalpontSelectExecutionPlan::CalpontSelectExecutionPlan(string data)
- : fData(std::move(data)), fPriority(querystats::DEFAULT_USER_PRIORITY_LEVEL), fWithRollup(false), fIsRecursiveWithTable(false)
+ : fData(std::move(data))
+ , fPriority(querystats::DEFAULT_USER_PRIORITY_LEVEL)
+ , fWithRollup(false)
+ , fIsRecursiveWithTable(false)
 {
   fUuid = QueryTeleClient::genUUID();
 }
@@ -473,6 +476,7 @@ void CalpontSelectExecutionPlan::serialize(messageqcpp::ByteStream& b) const
   b << (uint8_t)fWithRollup;
   b << (uint8_t)fIsRecursiveWithTable;
   b << (uint8_t)fIsRecursiveQuery;
+  b << (uint8_t)fContainsRecursiveQuery;
 }
 
 void CalpontSelectExecutionPlan::unserialize(messageqcpp::ByteStream& b)
@@ -681,6 +685,8 @@ void CalpontSelectExecutionPlan::unserialize(messageqcpp::ByteStream& b)
   fIsRecursiveWithTable = tmp8;
   b >> tmp8;
   fIsRecursiveQuery = tmp8;
+  b >> tmp8;
+  fContainsRecursiveQuery = tmp8;
 }
 
 bool CalpontSelectExecutionPlan::operator==(const CalpontSelectExecutionPlan& t) const

@@ -119,8 +119,6 @@ class SubQueryStep : public JobStep
   STJLP fSubJobList;
 
   boost::scoped_ptr<boost::thread> fRunner;
-
-  
 };
 
 class SubAdapterStep : public JobStep, public TupleDeliveryStep
@@ -221,6 +219,16 @@ class SubAdapterStep : public JobStep, public TupleDeliveryStep
     return fSubStep;
   }
 
+  bool isRecursiveStep()
+  {
+    return fIsRecursiveStep;
+  }
+
+  void isRecursiveStep(bool b)
+  {
+    fIsRecursiveStep = b;
+  }
+
   /** @brief add filters (expression steps)
    */
   void addExpression(const JobStepVector&, JobInfo&);
@@ -252,13 +260,11 @@ class SubAdapterStep : public JobStep, public TupleDeliveryStep
   bool fEndOfResult;
   std::shared_ptr<int[]> fIndexMap;
   std::vector<std::pair<uint32_t, uint32_t> > fDupColumns;
-  
 
   RowGroupDL* fInputDL;
   RowGroupDL* fOutputDL;
   uint64_t fInputIterator;
   uint64_t fOutputIterator;
-
 
   class Runner
   {
@@ -279,6 +285,7 @@ class SubAdapterStep : public JobStep, public TupleDeliveryStep
   JobInfo fJobInfo;
 
   boost::scoped_ptr<funcexp::FuncExpWrapper> fExpression;
+  bool fIsRecursiveStep = false;
 };
 
 }  // namespace joblist

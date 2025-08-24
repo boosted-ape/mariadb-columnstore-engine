@@ -298,7 +298,7 @@ void normalizeDateToTimestamp(const Row& in, Row* out, uint32_t i, long fTimeZon
     timeStamp.msecond = m_time.second_part;
   }
 
-  uint64_t outValue = (uint64_t)*(reinterpret_cast<uint64_t*>(&timeStamp));
+  uint64_t outValue = (uint64_t) * (reinterpret_cast<uint64_t*>(&timeStamp));
   out->setUintField(outValue, i);
 }
 
@@ -349,7 +349,7 @@ void normalizeDatetimeToTimestamp(const Row& in, Row* out, uint32_t i, long fTim
     timeStamp.msecond = m_time.second_part;
   }
 
-  uint64_t outValue = (uint64_t)*(reinterpret_cast<uint64_t*>(&timeStamp));
+  uint64_t outValue = (uint64_t) * (reinterpret_cast<uint64_t*>(&timeStamp));
   out->setUintField(outValue, i);
 }
 
@@ -380,7 +380,7 @@ void normalizeTimestampToDate(const Row& in, Row* out, uint32_t i, long fTimeZon
   date.month = time.month;
   date.day = time.day;
   date.spare = 0;
-  outValue = (uint32_t)*(reinterpret_cast<uint32_t*>(&date));
+  outValue = (uint32_t) * (reinterpret_cast<uint32_t*>(&date));
 
   out->setUintField(outValue, i);
 }
@@ -403,7 +403,7 @@ void normalizeTimestampToDatetime(const Row& in, Row* out, uint32_t i, long fTim
   datetime.minute = time.minute;
   datetime.second = time.second;
   datetime.msecond = timestamp.msecond;
-  outValue = (uint64_t)*(reinterpret_cast<uint64_t*>(&datetime));
+  outValue = (uint64_t) * (reinterpret_cast<uint64_t*>(&datetime));
 
   out->setUintField(outValue, i);
 }
@@ -1877,15 +1877,9 @@ void TupleUnion::writeNull(Row* out, uint32_t col)
 void TupleUnion::formatMiniStats()
 {
   ostringstream oss;
-  oss << "TUS "
-      << "UM "
-      << "- "
-      << "- "
-      << "- "
-      << "- "
-      << "- "
-      << "- " << JSTimeStamp::tsdiffstr(dlTimes.EndOfInputTime(), dlTimes.FirstReadTime()) << " "
-      << fRowsReturned << " ";
+  oss << "TUS " << "UM " << "- " << "- " << "- " << "- " << "- " << "- "
+      << JSTimeStamp::tsdiffstr(dlTimes.EndOfInputTime(), dlTimes.FirstReadTime()) << " " << fRowsReturned
+      << " ";
   fMiniInfo += oss.str();
 }
 
@@ -1918,7 +1912,7 @@ inline bool TupleRecursiveUnion::Eq::operator()(const RowPosition& d1, const Row
   return r1.equals(r2);
 }
 
-TupleRecursiveUnion::TupleRecursiveUnion(CalpontSystemCatalog::OID tableOID, const JobInfo& jobInfo, SJSV recursiveQueries)
+TupleRecursiveUnion::TupleRecursiveUnion(CalpontSystemCatalog::OID tableOID, const JobInfo& jobInfo)
  : JobStep(jobInfo)
  , fTableOID(tableOID)
  , output(NULL)
@@ -1933,7 +1927,7 @@ TupleRecursiveUnion::TupleRecursiveUnion(CalpontSystemCatalog::OID tableOID, con
  , joinRan(false)
  , sessionMemLimit(jobInfo.umMemLimit)
  , fTimeZone(jobInfo.timeZone)
- , fRecursiveQueries(recursiveQueries)
+
 {
   uniquer.reset(new Uniquer_t(10, Hasher(this), Eq(this), allocator));
   fExtendedInfo = "TUN: ";
@@ -2218,7 +2212,8 @@ void TupleRecursiveUnion::getOutput(RowGroup* rg, Row* row, RGData* data)
   rg->getRow(rg->getRowCount(), row);
 }
 
-void TupleRecursiveUnion::addToOutput(Row* r, RowGroup* rg, bool keepit, RGData& data, uint32_t& tmpOutputRowCount)
+void TupleRecursiveUnion::addToOutput(Row* r, RowGroup* rg, bool keepit, RGData& data,
+                                      uint32_t& tmpOutputRowCount)
 {
   r->nextRow();
   tmpOutputRowCount++;
@@ -2446,15 +2441,9 @@ void TupleRecursiveUnion::writeNull(Row* out, uint32_t col)
 void TupleRecursiveUnion::formatMiniStats()
 {
   ostringstream oss;
-  oss << "TUS "
-      << "UM "
-      << "- "
-      << "- "
-      << "- "
-      << "- "
-      << "- "
-      << "- " << JSTimeStamp::tsdiffstr(dlTimes.EndOfInputTime(), dlTimes.FirstReadTime()) << " "
-      << fRowsReturned << " ";
+  oss << "TUS " << "UM " << "- " << "- " << "- " << "- " << "- " << "- "
+      << JSTimeStamp::tsdiffstr(dlTimes.EndOfInputTime(), dlTimes.FirstReadTime()) << " " << fRowsReturned
+      << " ";
   fMiniInfo += oss.str();
 }
 

@@ -1963,7 +1963,7 @@ void TupleRecursiveUnion::setDistinctFlags(const vector<bool>& v)
   distinctFlags = v;
 }
 
-void TupleRecursiveUnion::readInput(uint32_t which)
+bool TupleRecursiveUnion::readInput(uint32_t which)
 {
   /* The handling of the output got a little kludgey with the string table enhancement.
    * When there is no distinct check, the outputs are all generated independently of
@@ -1973,6 +1973,8 @@ void TupleRecursiveUnion::readInput(uint32_t which)
    * store 8-byte offsets in rowMemory rather than 16-bytes for absolute pointers.
    */
 
+  // recursive union returns a boolean if there's the program should continue with the outer loop
+  isStablised = false;
   RowGroupDL* dl = NULL;
   bool more = true;
   RGData inRGData, outRGData, *tmpRGData;
@@ -2012,6 +2014,11 @@ void TupleRecursiveUnion::readInput(uint32_t which)
 
     if (dlTimes.FirstReadTime().tv_sec == 0)
       dlTimes.setFirstReadTime();
+
+    if (!more)
+    {
+      isStablised = true;
+    }
 
     if (fStartTime == -1)
     {
@@ -2138,7 +2145,7 @@ void TupleRecursiveUnion::readInput(uint32_t which)
         output->insert(outRGData);
     }
 
-    if (++runnersDone == fInputJobStepAssociation.outSize())
+    if (++runnersDone == fInputJobStepAssociation.outSize() || isStablised)
     {
       output->endOfInput();
 
@@ -2165,7 +2172,9 @@ void TupleRecursiveUnion::readInput(uint32_t which)
         fExtendedInfo += logStr.str();
         formatMiniStats();
       }
+      return false;
     }
+    return true;
   }
 }
 
@@ -2292,11 +2301,28 @@ void TupleRecursiveUnion::run()
     }
   }
 
-  runners.reserve(inputs.size());
-
   for (i = 0; i < inputs.size(); i++)
   {
-    runners.push_back(jobstepThreadPool.invoke(Runner(this, i)));
+    bool more = readInput(i);
+    if (!more)
+    {
+      // Drain all remaining inputs so they don’t block upstream producers
+
+      // runners.reserve(inputs.size() - i - 1);
+      for (uint32_t j = i + 1; j < inputs.size(); j++)
+      {
+        // runners.push_back(jobstepThreadPool.invoke(Runner(this, j)));
+
+        RowGroupDL* dl = inputs[j];
+        uint32_t it = dl->getIterator();
+        rowgroup::RGData tmp;
+        while (dl->next(it, &tmp))
+        {
+          // discard rows
+        }
+      }
+      break;  // we’re stabilized, stop real work
+    }
   }
 }
 

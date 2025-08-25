@@ -31,6 +31,7 @@
 #include "jobstep.h"
 #include <boost/smart_ptr/shared_ptr.hpp>
 #include <tr1/unordered_set>
+#include <tuple>
 
 #include "stlpoolallocator.h"
 #include "threadnaming.h"
@@ -159,6 +160,7 @@ class TupleUnion : public JobStep, public TupleDeliveryStep
       tu->readInput(index);
     }
   };
+
   std::vector<uint64_t> runners;  // thread pool handles
 
   struct Hasher
@@ -296,7 +298,7 @@ class TupleRecursiveUnion : public JobStep, public TupleDeliveryStep
                    uint32_t& tmpOutputRowCount);
   void normalize(const rowgroup::Row& in, rowgroup::Row* out, const normalizeFunctionsT& normalizeFunctions);
   void writeNull(rowgroup::Row* out, uint32_t col);
-  void readInput(uint32_t);
+  bool readInput(uint32_t);
   void formatMiniStats();
 
   execplan::CalpontSystemCatalog::OID fTableOID;
@@ -323,7 +325,14 @@ class TupleRecursiveUnion : public JobStep, public TupleDeliveryStep
     void operator()()
     {
       utils::setThreadName("TUSRunner");
-      tu->readInput(index);
+
+      RowGroupDL* dl = tu->inputs[index];
+      uint32_t it = dl->getIterator();
+      rowgroup::RGData tmp;
+      while (dl->next(it, &tmp))
+      {
+        // discard rows
+      }
     }
   };
   std::vector<uint64_t> runners;  // thread pool handles
@@ -364,6 +373,8 @@ class TupleRecursiveUnion : public JobStep, public TupleDeliveryStep
   uint32_t distinctDone;
 
   uint64_t fRowsReturned;
+
+  bool isStablised = false;
 
   // temporary hack to make sure JobList only calls run, join once
   boost::mutex jlLock;

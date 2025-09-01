@@ -477,6 +477,7 @@ void CalpontSelectExecutionPlan::serialize(messageqcpp::ByteStream& b) const
   b << (uint8_t)fIsRecursiveWithTable;
   b << (uint8_t)fIsRecursiveQuery;
   b << (uint8_t)fContainsRecursiveQuery;
+  b << fMaxRecursiveDepth;
 }
 
 void CalpontSelectExecutionPlan::unserialize(messageqcpp::ByteStream& b)
@@ -687,6 +688,7 @@ void CalpontSelectExecutionPlan::unserialize(messageqcpp::ByteStream& b)
   fIsRecursiveQuery = tmp8;
   b >> tmp8;
   fContainsRecursiveQuery = tmp8;
+  b >> (uint32_t&)fMaxRecursiveDepth;
 }
 
 bool CalpontSelectExecutionPlan::operator==(const CalpontSelectExecutionPlan& t) const

@@ -760,6 +760,14 @@ class CalpontSelectExecutionPlan : public CalpontExecutionPlan
   {
     return fIsRecursiveWithTable;
   }
+  uint32_t maxRecursiveDepth()
+  {
+    return fMaxRecursiveDepth;
+  }
+  void maxRecursiveDepth(uint32_t depth)
+  {
+    fMaxRecursiveDepth = depth;
+  }
 
   void isRecursiveQuery(bool b)
   {
@@ -1010,6 +1018,7 @@ class CalpontSelectExecutionPlan : public CalpontExecutionPlan
   bool fIsRecursiveWithTable = false;
   bool fContainsRecursiveQuery = false;
   bool fIsRecursiveQuery = false;
+  uint32_t fMaxRecursiveDepth;
 };
 
 /**

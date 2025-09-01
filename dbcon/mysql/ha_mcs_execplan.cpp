@@ -6982,7 +6982,8 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
         dynamic_cast<CalpontSelectExecutionPlan*>(csep.get())->containsRecursiveQuery(true);
         SELECT_LEX* start = table_ptr->derived->first_select();
         // SELECT_LEX* end = NULL;
-
+        dynamic_cast<CalpontSelectExecutionPlan*>(csep.get())
+            ->maxRecursiveDepth(gwi.thd->variables.max_recursive_iterations);
         // CalpontSelectExecutionPlan::SelectList unionVec;
         // bool unionSel = true;
         // uint8_t distUnionNum = 0;

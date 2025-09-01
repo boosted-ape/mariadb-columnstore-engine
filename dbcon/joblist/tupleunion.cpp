@@ -298,7 +298,7 @@ void normalizeDateToTimestamp(const Row& in, Row* out, uint32_t i, long fTimeZon
     timeStamp.msecond = m_time.second_part;
   }
 
-  uint64_t outValue = (uint64_t) * (reinterpret_cast<uint64_t*>(&timeStamp));
+  uint64_t outValue = (uint64_t)*(reinterpret_cast<uint64_t*>(&timeStamp));
   out->setUintField(outValue, i);
 }
 
@@ -349,7 +349,7 @@ void normalizeDatetimeToTimestamp(const Row& in, Row* out, uint32_t i, long fTim
     timeStamp.msecond = m_time.second_part;
   }
 
-  uint64_t outValue = (uint64_t) * (reinterpret_cast<uint64_t*>(&timeStamp));
+  uint64_t outValue = (uint64_t)*(reinterpret_cast<uint64_t*>(&timeStamp));
   out->setUintField(outValue, i);
 }
 
@@ -380,7 +380,7 @@ void normalizeTimestampToDate(const Row& in, Row* out, uint32_t i, long fTimeZon
   date.month = time.month;
   date.day = time.day;
   date.spare = 0;
-  outValue = (uint32_t) * (reinterpret_cast<uint32_t*>(&date));
+  outValue = (uint32_t)*(reinterpret_cast<uint32_t*>(&date));
 
   out->setUintField(outValue, i);
 }
@@ -403,7 +403,7 @@ void normalizeTimestampToDatetime(const Row& in, Row* out, uint32_t i, long fTim
   datetime.minute = time.minute;
   datetime.second = time.second;
   datetime.msecond = timestamp.msecond;
-  outValue = (uint64_t) * (reinterpret_cast<uint64_t*>(&datetime));
+  outValue = (uint64_t)*(reinterpret_cast<uint64_t*>(&datetime));
 
   out->setUintField(outValue, i);
 }
@@ -2309,18 +2309,18 @@ void TupleRecursiveUnion::run()
       // Drain all remaining inputs so they don’t block upstream producers
 
       // runners.reserve(inputs.size() - i - 1);
-      for (uint32_t j = i + 1; j < inputs.size(); j++)
-      {
-        // runners.push_back(jobstepThreadPool.invoke(Runner(this, j)));
-
-        RowGroupDL* dl = inputs[j];
-        uint32_t it = dl->getIterator();
-        rowgroup::RGData tmp;
-        while (dl->next(it, &tmp))
-        {
-          // discard rows
-        }
-      }
+      // for (uint32_t j = i + 1; j < inputs.size(); j++)
+      // {
+      //   // runners.push_back(jobstepThreadPool.invoke(Runner(this, j)));
+      //
+      //   RowGroupDL* dl = inputs[j];
+      //   uint32_t it = dl->getIterator();
+      //   rowgroup::RGData tmp;
+      //   while (dl->next(it, &tmp))
+      //   {
+      //     // discard rows
+      //   }
+      // }
       break;  // we’re stabilized, stop real work
     }
   }

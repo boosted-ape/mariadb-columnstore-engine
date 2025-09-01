@@ -2077,7 +2077,8 @@ void makeUnionJobSteps(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo, JobSt
     }
 
     baseRecur = new CalpontSelectExecutionPlan(*currRecur);
-    for (int i = 0; i < 100; ++i)
+    uint32_t depth = currRecur->maxRecursiveDepth();
+    for (uint32 i = 0; i < depth; ++i)
     {
       CalpontSelectExecutionPlan* workingRecur = new CalpontSelectExecutionPlan(*baseRecur);
       CalpontSelectExecutionPlan::SelectList& currDerivedTbList = workingRecur->derivedTableList();
@@ -2111,7 +2112,7 @@ void makeUnionJobSteps(CalpontSelectExecutionPlan* csep, JobInfo& jobInfo, JobSt
       replaceDerivedTableList(currDerivedTbList, replacement);
       replaceDerivedTableList(currUnionVec, replacement);
 
-      if (i == 99)
+      if (i == depth - 1)
       {
         sub = doUnionSub(workingRecur, jobInfo);
         querySteps.push_back(sub);

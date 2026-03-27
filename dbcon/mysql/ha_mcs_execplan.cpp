@@ -31,6 +31,7 @@
 #include <vector>
 #include <map>
 #include <limits>
+#include "idberrorinfo.h"
 #include "messagelog.h"
 
 #include <string.h>
@@ -41,6 +42,7 @@
 #include <boost/thread.hpp>
 
 #include "errorids.h"
+#include "mysqld_error.h"
 using namespace logging;
 
 #define PREFER_MY_CONFIG_H
@@ -5315,22 +5317,94 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
     {
       // Until we handle recursive cte:
       // Checking here ensures we catch all with clauses in the query.
-      if (table_ptr->is_recursive_with_table())
-      {
-        gwi.fatalParseError = true;
-        gwi.parseErrorText = "Recursive CTE";
-        setError(gwi.thd, ER_CHECK_NOT_IMPLEMENTED, gwi.parseErrorText, gwi);
-        return ER_CHECK_NOT_IMPLEMENTED;
-      }
+      /*
 
+      refer to sql_union.cc, exec_recursive for a sample implementation
+
+      might just work by setting isUnion to true, then calling get select again.
+      need to set relevant meta data.
+
+      needs to write all to the first table, probably can be achieved
+      */
       string viewName = getViewName(table_ptr);
       if (lower_case_table_names)
       {
         boost::algorithm::to_lower(viewName);
       }
+      if (table_ptr->is_recursive_with_table())
+      {
+        dynamic_cast<CalpontSelectExecutionPlan*>(csep.get())->containsRecursiveQuery(true);
+        SELECT_LEX* start = table_ptr->derived->first_select();
+        // SELECT_LEX* end = NULL;
+        dynamic_cast<CalpontSelectExecutionPlan*>(csep.get())
+            ->maxRecursiveDepth(gwi.thd->variables.max_recursive_iterations);
+        SCSEP anchor_plan = NULL;
+
+        gwi.isRecursiveWithTable = true;
+#ifdef DEBUG_WALK_COND
+
+        if (gwi.recursiveWithTableName == table_ptr->table_name.str)
+        {
+          cerr << "RECURSIVE TABLE: " << gwi.recursiveWithTableName << endl;
+        }
+
+#endif
+
+        FromSubQuery* fromSub = new FromSubQuery(gwi, start);
+        string alias(table_ptr->alias.str);
+        if (lower_case_table_names)
+        {
+          boost::algorithm::to_lower(alias);
+        }
+        fromSub->alias(alias);
+
+        CalpontSystemCatalog::TableAliasName tn =
+            make_aliasview("", table_ptr->table_name.str, alias, viewName);
+        // @bug 3852. check return execplan
+        anchor_plan = fromSub->transform(isUnion);
+        if (!anchor_plan)
+        {
+          setError(gwi.thd, ER_INTERNAL_ERROR, fromSub->gwip().parseErrorText, gwi);
+          CalpontSystemCatalog::removeCalpontSystemCatalog(gwi.sessionid);
+          return ER_INTERNAL_ERROR;
+        }
+        dynamic_cast<CalpontSelectExecutionPlan*>(anchor_plan.get())->isRecursiveWithTable(true);
+        dynamic_cast<CalpontSelectExecutionPlan*>(anchor_plan.get())
+            ->maxRecursiveDepth(gwi.thd->variables.max_recursive_iterations);
+
+        gwi.derivedTbList.push_back(anchor_plan);
+        gwi.tbList.push_back(tn);
+        CalpontSystemCatalog::TableAliasName tan = make_aliastable("", table_ptr->table_name.str, alias);
+        gwi.tableMap[tan] = make_pair(0, table_ptr);
+        // MCOL-2178 isUnion member only assigned, never used
+        // MIGR::infinidb_vtable.isUnion = true; //by-pass the 2nd pass of rnd_init
+        start = table_ptr->derived->first_select();
+
+        // if (with_element->with_anchor)
+        //   end = with_element->first_recursive;
+
+        if (!anchor_plan)
+        {
+          setError(gwi.thd, ER_INTERNAL_ERROR, "No Anchor Query", gwi);
+          CalpontSystemCatalog::removeCalpontSystemCatalog(gwi.sessionid);
+          return ER_INTERNAL_ERROR;
+        }
+
+        // if (table_ptr->view)
+        // {
+        //   gwi.parseErrorText = "Recursive CTE view";
+        // }
+        // else
+        // {
+        //   gwi.parseErrorText = "Recursive CTE";
+        // }
+
+        // setError(gwi.thd, ER_CHECK_NOT_IMPLEMENTED, gwi.parseErrorText, gwi);
+        // return ER_CHECK_NOT_IMPLEMENTED;
+      }
 
       // @todo process from subquery
-      if (table_ptr->derived)
+      else if (table_ptr->derived)
       {
         SELECT_LEX* select_cursor = table_ptr->derived->first_select();
         FromSubQuery* fromSub = new FromSubQuery(gwi, select_cursor);
@@ -5341,7 +5415,8 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
         }
         fromSub->alias(alias);
 
-        CalpontSystemCatalog::TableAliasName tn = make_aliasview("", "", alias, viewName);
+        CalpontSystemCatalog::TableAliasName tn =
+            make_aliasview("", table_ptr->table_name.str, alias, viewName);
         // @bug 3852. check return execplan
         SCSEP plan = fromSub->transform();
 
@@ -5352,10 +5427,17 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
           return ER_INTERNAL_ERROR;
         }
 
+        if (plan->containsRecursiveQuery())
+        {
+          csep->containsRecursiveQuery(true);
+        }
+
         gwi.derivedTbList.push_back(plan);
         gwi.tbList.push_back(tn);
-        CalpontSystemCatalog::TableAliasName tan = make_aliastable("", alias, alias);
+        CalpontSystemCatalog::TableAliasName tan = make_aliastable("", table_ptr->table_name.str, alias);
         gwi.tableMap[tan] = make_pair(0, table_ptr);
+        // MCOL-2178 isUnion member only assigned, never used
+        // MIGR::infinidb_vtable.isUnion = true; //by-pass the 2nd pass of rnd_init
       }
       else if (table_ptr->view)
       {
@@ -5392,12 +5474,9 @@ int processFrom(bool& isUnion, SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP&
         CalpontSystemCatalog::TableAliasName tn =
             make_aliasview(table_ptr->db.str, table_name, table_ptr->alias.str, viewName, columnStore,
                            lower_case_table_names);
-        execplan::Partitions parts = getPartitions(table_ptr);
-        tn.partitions = parts;
         gwi.tbList.push_back(tn);
         CalpontSystemCatalog::TableAliasName tan = make_aliastable(
             table_ptr->db.str, table_name, table_ptr->alias.str, columnStore, lower_case_table_names);
-        tan.partitions = parts;
         gwi.tableMap[tan] = make_pair(0, table_ptr);
 #ifdef DEBUG_WALK_COND
         cerr << tn << endl;
@@ -5750,6 +5829,14 @@ int processGroupBy(SELECT_LEX& select_lex, gp_walk_info& gwi, const bool withRol
 
   gwi.hasWindowFunc = hasWindowFunc;
   groupcol = static_cast<ORDER*>(select_lex.group_list.first);
+
+  if (gwi.isRecursiveWithTable && groupcol)
+  {
+    gwi.fatalParseError = true;
+    gwi.parseErrorText = IDBErrorInfo::instance()->errorMsg(ERR_NON_SUPPORT_GROUP_BY, "GROUP BY clause");
+    setError(gwi.thd, ER_CHECK_NOT_IMPLEMENTED, gwi.parseErrorText, gwi);
+    return ER_CHECK_NOT_IMPLEMENTED;
+  }
 
   gwi.disableWrapping = true;
   for (; groupcol; groupcol = groupcol->next)
@@ -7056,9 +7143,16 @@ int processOrderBy(SELECT_LEX& select_lex, gp_walk_info& gwi, SCSEP& csep,
 {
   SQL_I_List<ORDER> order_list = select_lex.order_list;
   ORDER* ordercol = static_cast<ORDER*>(order_list.first);
-
   // check if window functions are in order by. InfiniDB process order by list if
   // window functions are involved, either in order by or projection.
+  if (gwi.isRecursiveWithTable && ordercol)
+  {
+    gwi.fatalParseError = true;
+    gwi.parseErrorText = IDBErrorInfo::instance()->errorMsg(ERR_NON_SUPPORT_ORDER_BY, "WITH RECURSIVE");
+    setError(gwi.thd, ER_CHECK_NOT_IMPLEMENTED, gwi.parseErrorText, gwi);
+    return ER_CHECK_NOT_IMPLEMENTED;
+  }
+
   for (; ordercol; ordercol = ordercol->next)
   {
     if ((*(ordercol->item))->type() == Item::WINDOW_FUNC_ITEM)
